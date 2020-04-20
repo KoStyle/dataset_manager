@@ -1,0 +1,3 @@
+CLASS_SVR = 'svr'
+CLASS_SOCAL = 'socal'
+CLASS_NOCLASS = 'N/A'
