@@ -1,38 +1,36 @@
 from MDT.base_case import BaseCase
-from MDT.constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR
+from MDT.constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET
 
-SEPARATOR = ";"
+SEPARATOR = "\t"
 
-TAG_RID = "id"
-TAG_UID = "uid"
-TAG_PID = "pid"
+TAG_RID = "review_id"
+TAG_UID = "user_id"
+TAG_PID = "product_id"
+TAG_UR = "user_rating"
 TAG_SVR = "svr"
 TAG_SOCAL = "socal"
-TAG_TEXT = "comment"
+TAG_REVIEW = "review"
 
-
-# TODO Rework header reading to return it somehow
-# TODO al leer los resultados, meter en TAG_SVR/TAG_SOCAL el error, no el rating. para no leer el rating real. El programa funciona con error de metodo
-# TODO intetar crear una unica funcion de lectura (que distinga por nombre de fichero quizá)
-
-def read_og_set_file(file_name):
+def read_partial_set(file_name, mode=RESSET):
     '''
     This function reads a .csv file with the field descriptions in the first line and returns an array
     of dictionaries with the entries in the file
     :param file_name: The path to the csv file
+    :param mode: The reading mode, by defaut "RESSET" (for RESult SET). The other option would be "REVSET" (REView SET)
     :return: array of dictionaries with all the entries in the file
     '''
     entries = []
+
     f = open(file_name, "r")
 
     buffer = f.readlines()
-    data_header = buffer.pop(0)
-    data_header_tokens = data_header.split(SEPARATOR)
+    data_header_tokens = buffer.pop(0).split(SEPARATOR)
 
     header_list = []
 
     for data_token in data_header_tokens:
-        header_list.append(data_token.strip().lower())
+        header_list.append(data_token.strip().lower())  # we create a list of header names, cleaned and lowered from
+        # the first line of the file
 
     for line in buffer:
         values = {}
@@ -41,27 +39,37 @@ def read_og_set_file(file_name):
         for token in tokens:
             values[header_list[index]] = token.strip().lower()
             index += 1
+
+        if mode == RESSET:  # we update the socal or svr field with absolute error instead of rating
+            if TAG_SOCAL in values:
+                estimation_method = TAG_SOCAL
+            elif TAG_SVR in values:
+                estimation_method = TAG_SVR
+            else:
+                raise Exception('No estimation tag found')
+            values[estimation_method] = abs(values[estimation_method] - values[TAG_UR])
+
         entries.append(values)
 
     return entries
 
 
-def split_set(entries):
+def split_set_by_class(entries):
     '''
     This function splits a set of examples in accordance to their performance with diferent training methods
     (labeled TAG_SVR and TAG_SOCAL)
     :param entries: All mixed class entries
-    :return: A list with two sublists, the first corresponding to the SVR instances, the second corresponding to the
-    SOCAL instances.
+    :return: A dictionary with two elements, the first corresponding to the SVR instances, the second corresponding to
+    the SOCAL instances. They can be accessed using the constants TAG_SVR and TAG_SOCAL as keys.
     '''
-    set1 = []
-    set2 = []
-    sets = [set1, set2]
+    set_svr = []
+    set_socal = []
+    sets = {TAG_SVR: set_svr, TAG_SOCAL: set_socal}
     for entry in entries:
-        if entry[TAG_SVR] > entry[TAG_SOCAL]:
-            set1.append(entry)
+        if entry[TAG_SVR] < entry[TAG_SOCAL]:  # because the absolute error is smaller in SVR, goes to setSVR
+            set_svr.append(entry)
         else:
-            set2.append(entry)
+            set_socal.append(entry)
 
     return sets
 
@@ -93,17 +101,28 @@ def join_result_sets(set_socal, set_svr):
     return set_socal
 
 
-# This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said entries to create a complete set
+# This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said
+# entries to create a complete set
 def join_partial_set_entries(set_comments, set_results_socal, set_results_svr):
+    '''
+    This function creates a definitive learning set containing the information from the three initial ones.
+    :param set_comments: The file from where we get the IDs for review, product, user and the review text itself.
+    :param set_results_socal: The file from where we get the SOCAL absolute error of the case following the formula
+    absolute_error = (user_ratin - socal_estimate)
+    :param set_results_svr: The file from where we get the SVR absolute error of the case following the formula
+    absolute_error = (user_ratin - svr_estimate)
+    :return: A list of "BaseCase" objects containing all the initial information, i.e.: without calculated attributes
+    '''
     base_cases = []
     for entry in set_comments:
         case = BaseCase()
         case.rev_id = entry[TAG_RID]
         case.user_id = entry[TAG_UID]
         case.product_id = entry[TAG_PID]
-        case.review = entry[TAG_TEXT]
+        case.review = entry[TAG_REVIEW]
 
-        # We assing a class to the entry by searching for it in one of the subsets. If not foud, something not good happened
+        # We assing a class to the entry by searching for it in one of the subsets. If not foud, something not good
+        # happened
         if get_entry(case.rev_id, set_results_socal) is not None:
             case.classification_class = CLASS_SOCAL
         elif get_entry(case.rev_id, set_results_svr) is not None:
@@ -112,3 +131,4 @@ def join_partial_set_entries(set_comments, set_results_socal, set_results_svr):
             case.classification_class = CLASS_NOCLASS
 
         base_cases.append(case)
+    return base_cases
