@@ -1,5 +1,5 @@
-from MDT.base_case import BaseCase
-from MDT.constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET
+from base_case import BaseCase
+from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET
 
 SEPARATOR = "\t"
 

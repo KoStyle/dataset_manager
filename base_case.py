@@ -1,4 +1,4 @@
-from MDT.constants import CLASS_NOCLASS
+from constants import CLASS_NOCLASS
 
 
 class BaseCase:
