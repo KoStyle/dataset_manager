@@ -47,7 +47,7 @@ def read_partial_set(file_name, mode=RESSET):
                 estimation_method = TAG_SVR
             else:
                 raise Exception('No estimation tag found')
-            values[estimation_method] = abs(values[estimation_method] - values[TAG_UR])
+            values[estimation_method] = abs(float(values[estimation_method]) - float(values[TAG_UR]))
 
         entries.append(values)
 
