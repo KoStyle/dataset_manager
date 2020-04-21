@@ -3,13 +3,14 @@ from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET
 
 SEPARATOR = "\t"
 
-TAG_RID = "review_id"
+TAG_RID = "rev_id"
 TAG_UID = "user_id"
 TAG_PID = "product_id"
 TAG_UR = "user_rating"
 TAG_SVR = "svr"
 TAG_SOCAL = "socal"
 TAG_REVIEW = "review"
+
 
 def read_partial_set(file_name, mode=RESSET):
     '''
@@ -24,6 +25,7 @@ def read_partial_set(file_name, mode=RESSET):
     f = open(file_name, "r")
 
     buffer = f.readlines()
+    f.close()
     data_header_tokens = buffer.pop(0).split(SEPARATOR)
 
     header_list = []
@@ -74,29 +76,45 @@ def split_set_by_class(entries):
     return sets
 
 
-def get_entry(entry_id, entry_set):
+def get_entry(entry_id, entry_set, remove=False):
     '''
     This function searches for an entry in a given set that matches a given id
     :param entry_id: The id to search (int)
     :param entry_set: A set of entries
     :return: The entry in case the id exists, None if not found
     '''
+    if not entry_set:
+        return None
+
     i = 0
     entry = entry_set[i]
     max_len = len(entry_set)
-    while not entry[TAG_RID] == entry_id and i < max_len:
+    while not entry[TAG_RID] == entry_id and i < max_len-1:
         i += 1
         entry = entry_set[i]
 
     if i == max_len:
         return None
     else:
+        if remove:
+            entry_set.remove(entry)
         return entry
 
 
+
+# TODO hacer el orden de los argumentos intercambiables como en la lectura de fichero (comprobando que clave existe en
+#   arg1
 def join_result_sets(set_socal, set_svr):
+    '''
+    This method takes to sets with only one estimation and combines the in a set of cases with both estimations.
+    This method is faster if both sets are sorted by TAG_RID
+    :param set_socal: first set
+    :param set_svr: second set
+    :return: combined set
+    '''
     for socentry in set_socal:
         svr_partner = get_entry(socentry[TAG_RID], set_svr)
+        set_svr.remove(svr_partner)  # Done to optimize search of partner speed (works best with sorted sets)
         socentry[TAG_SVR] = svr_partner[TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
     return set_socal
 
@@ -122,10 +140,10 @@ def join_partial_set_entries(set_comments, set_results_socal, set_results_svr):
         case.review = entry[TAG_REVIEW]
 
         # We assing a class to the entry by searching for it in one of the subsets. If not foud, something not good
-        # happened
-        if get_entry(case.rev_id, set_results_socal) is not None:
+        # happened. Found entries are removed from result sets for optimization reasons
+        if get_entry(case.rev_id, set_results_socal, True) is not None:
             case.classification_class = CLASS_SOCAL
-        elif get_entry(case.rev_id, set_results_svr) is not None:
+        elif get_entry(case.rev_id, set_results_svr, True) is not None:
             case.classification_class = CLASS_SVR
         else:
             case.classification_class = CLASS_NOCLASS
