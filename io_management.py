@@ -81,6 +81,7 @@ def get_entry(entry_id, entry_set, remove=False):
     This function searches for an entry in a given set that matches a given id
     :param entry_id: The id to search (int)
     :param entry_set: A set of entries
+    :param remove: A flag that deletes the found entry from the original list if enabled. False by default.
     :return: The entry in case the id exists, None if not found
     '''
     if not entry_set:
@@ -89,17 +90,16 @@ def get_entry(entry_id, entry_set, remove=False):
     i = 0
     entry = entry_set[i]
     max_len = len(entry_set)
-    while not entry[TAG_RID] == entry_id and i < max_len-1:
+    while not entry[TAG_RID] == entry_id and i < max_len - 1:
         i += 1
         entry = entry_set[i]
 
-    if i == max_len:
+    if i == max_len - 1:
         return None
     else:
         if remove:
             entry_set.remove(entry)
         return entry
-
 
 
 # TODO hacer el orden de los argumentos intercambiables como en la lectura de fichero (comprobando que clave existe en
@@ -112,10 +112,14 @@ def join_result_sets(set_socal, set_svr):
     :param set_svr: second set
     :return: combined set
     '''
-    for socentry in set_socal:
-        svr_partner = get_entry(socentry[TAG_RID], set_svr)
-        set_svr.remove(svr_partner)  # Done to optimize search of partner speed (works best with sorted sets)
-        socentry[TAG_SVR] = svr_partner[TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
+    for socentry in set_socal:  # Remove flat to true to optimize search of partner speed (works best with sorted sets)
+        svr_partner = get_entry(socentry[TAG_RID], set_svr, True)
+        if svr_partner:
+            socentry[TAG_SVR] = svr_partner[
+                TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
+        else:
+            print("id {} no encontrado en SVR, asisgnando 99".format(socentry[TAG_RID]))
+            socentry[TAG_SVR] = 99
     return set_socal
 
 
