@@ -43,15 +43,6 @@ def read_partial_set(file_name, mode=RESSET):
             values[header_list[index]] = token.strip().lower()
             index += 1
 
-        if mode == RESSET:  # we update the socal or svr field with absolute error instead of rating
-            if TAG_SOCAL in values:
-                estimation_method = TAG_SOCAL
-            elif TAG_SVR in values:
-                estimation_method = TAG_SVR
-            else:
-                raise Exception('No estimation tag found')
-            values[estimation_method] = abs(float(values[estimation_method]) - float(values[TAG_UR]))
-
         entries[values[TAG_RID]] = values
 
     return entries
@@ -69,9 +60,9 @@ def assing_class(entries):
     for key in entries:
         entry = entries[key]
         if entry[TAG_SVR] < entry[TAG_SOCAL]:  # because the absolute error is smaller in SVR, assings svr class
-            entry[TAG_CLASS] = TAG_SVR
+            entry[TAG_CLASS] = CLASS_SVR
         else:
-            entry[TAG_CLASS] = TAG_SOCAL
+            entry[TAG_CLASS] = CLASS_SOCAL
 
     return entries
 
@@ -132,46 +123,40 @@ def join_result_sets(set1, set2):
 
     for sockey in set_socal:
         socentry = set_socal[sockey]
-        svr_partner = get_entry(socentry[TAG_RID], set_svr)
+        svr_partner = get_entry(sockey, set_svr)
         if svr_partner:
             socentry[TAG_SVR] = svr_partner[
                 TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
         else:
-            print("id {} no encontrado en SVR, asisgnando 99".format(socentry[TAG_RID]))
-            socentry[TAG_SVR] = 99
+            # TODO volcar esto a un log que se sobreescriba
+            print("id {} no encontrado en SVR, asisgnando 99".format(sockey))
+            del set_socal[sockey]
     return set_socal
 
 
 # This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said
 # entries to create a complete set
-# This method should no longer be required, because we opted for dicitionaries to retrieve the text information and make
-# a lighter case_set (cases in one side, their sets in the other, both have review_id
-def join_partial_set_entries(set_comments, set_results_socal, set_results_svr):
+def join_partial_set_entries(set_results):
     '''
     This function creates a definitive learning set containing the information from the three initial ones.
-    :param set_comments: The file from where we get the IDs for review, product, user and the review text itself.
-    :param set_results_socal: The file from where we get the SOCAL absolute error of the case following the formula
+    :param set_results: The file from where we get the SOCAL absolute error of the case following the formula
     absolute_error = (user_ratin - socal_estimate)
     :param set_results_svr: The file from where we get the SVR absolute error of the case following the formula
     absolute_error = (user_ratin - svr_estimate)
     :return: A list of "BaseCase" objects containing all the initial information, i.e.: without calculated attributes
     '''
     base_cases = []
-    for entry in set_comments:
+    for entry_key in set_results:
+        entry = set_results[entry_key]
         case = BaseCase()
         case.rev_id = entry[TAG_RID]
         case.user_id = entry[TAG_UID]
         case.product_id = entry[TAG_PID]
         case.review = entry[TAG_REVIEW]
-
-        # We assing a class to the entry by searching for it in one of the subsets. If not foud, something not good
-        # happened. Found entries are removed from result sets for optimization reasons
-        if get_entry(case.rev_id, set_results_socal, True) is not None:
-            case.classification_class = CLASS_SOCAL
-        elif get_entry(case.rev_id, set_results_svr, True) is not None:
-            case.classification_class = CLASS_SVR
-        else:
-            case.classification_class = CLASS_NOCLASS
+        case.irr_socal = entry[TAG_SOCAL]
+        case.irr_svr = entry[TAG_SVR]
+        case.user_rating = entry[TAG_UR]
 
         base_cases.append(case)
+
     return base_cases

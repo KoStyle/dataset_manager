@@ -18,6 +18,9 @@ class BaseCase:
         self.product_id = ''
         self.review = ''
         self.classification_class = CLASS_NOCLASS
+        self.irr_socal = None
+        self.irr_svr = None
+        self.user_rating= None
         self.attributes = {}
 
     def compute_attr(self, attributer):

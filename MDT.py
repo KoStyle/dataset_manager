@@ -12,7 +12,7 @@ if __name__ == "__main__":
     #
     # sorted_by_class = split_set_by_class(join_result_sets(entries_socal_app, entries_svr_app))
     # cases = join_partial_set_entries(entries_comments, sorted_by_class[TAG_SOCAL], sorted_by_class[TAG_SVR])
-    # print(len(sorted_by_class[TAG_SVR]))
+    print(len(sorted_by_class[TAG_SVR]))
     # print(len(sorted_by_class[TAG_SOCAL]))
 
     #nltk.download('averaged_perceptron_tagger')
