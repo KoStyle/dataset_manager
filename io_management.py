@@ -91,7 +91,7 @@ def get_entry(entry_id, entry_dict, remove=False):
 
 
 def check_method_set(result_set, tag):
-    if tag in list(result_set.keys())[0]:
+    if tag in list(result_set.items())[0][1]:
         return True
     else:
         return False
