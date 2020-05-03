@@ -4,16 +4,18 @@ from base_case import BaseCase
 
 
 class UserCase:
-    reviews = {}
-    user_id = None
-    maep_socal = None
-    maep_svr = None
+
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.reviews = {}
+        self.maep_socal = None
+        self.maep_svr = None
 
     def get_id(self):
         return self.user_id
 
     def get_rev(self, rev_id):
-        return rev_id[rev_id]
+        return self.reviews[rev_id]
 
     def get_maep_socal(self):
         if not self.maep_socal:
@@ -33,9 +35,6 @@ class UserCase:
         # TODO implement
         self.maep_svr = random.rand()
 
-    def __init__(self, user_id):
-        self.user_id = user_id
-
     def add_review(self, review):
-        if isinstance(BaseCase, review):
+        if type(review) is BaseCase:
             self.reviews[review.rev_id] = review

@@ -24,7 +24,7 @@ def read_partial_set(file_name, mode=RESSET):
     '''
     entries = {}
 
-    f = open(file_name, "r")
+    f = open(file_name, "r", encoding='utf-8')
 
     buffer = f.readlines()
     f.close()
@@ -153,7 +153,7 @@ def join_partial_set_entries(set_results):
         case.rev_id = entry[TAG_RID]
         case.user_id = entry[TAG_UID]
         case.product_id = entry[TAG_PID]
-        case.review = entry[TAG_REVIEW]
+        #case.review = entry[TAG_REVIEW]  #Only exists in comment sets (we separated that)
         case.irr_socal = entry[TAG_SOCAL]
         case.irr_svr = entry[TAG_SVR]
         case.user_rating = entry[TAG_UR]
