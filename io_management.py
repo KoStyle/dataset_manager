@@ -100,13 +100,11 @@ def get_entry(entry_id, entry_dict, remove=False):
 
 def check_method_set(result_set, tag):
     if tag in list(result_set.keys())[0]:
-        return  True
+        return True
     else:
         return False
 
 
-# TODO hacer el orden de los argumentos intercambiables como en la lectura de fichero (comprobando que clave existe en
-#   arg1
 def join_result_sets(set1, set2):
     '''
     This method takes to sets with only one estimation and combines the in a set of cases with both estimations.
@@ -116,26 +114,25 @@ def join_result_sets(set1, set2):
     :return: combined set
     '''
 
-    set_socal=None
-    set_svr=None
-
     if check_method_set(set1, TAG_SVR):
-        set_svr=set1
+        set_svr = set1
     elif check_method_set(set2, TAG_SVR):
-        set_socal=set2
+        set_svr = set2
     else:
         raise Exception("No SVR set in join")
 
     if check_method_set(set1, TAG_SOCAL):
-        set_svr=set1
+        set_socal = set1
     elif check_method_set(set2, TAG_SOCAL):
-        set_socal=set2
+        set_socal = set2
     else:
         raise Exception("No SOCAL set in join")
 
-    for sockey in set_socal:  # Remove flat to true to optimize search of partner speed (works best with sorted sets)
+    # We continue if we have both sets
+
+    for sockey in set_socal:
         socentry = set_socal[sockey]
-        svr_partner = get_entry(socentry[TAG_RID], set_svr, True)
+        svr_partner = get_entry(socentry[TAG_RID], set_svr)
         if svr_partner:
             socentry[TAG_SVR] = svr_partner[
                 TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
@@ -147,6 +144,8 @@ def join_result_sets(set1, set2):
 
 # This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said
 # entries to create a complete set
+# This method should no longer be required, because we opted for dicitionaries to retrieve the text information and make
+# a lighter case_set (cases in one side, their sets in the other, both have review_id
 def join_partial_set_entries(set_comments, set_results_socal, set_results_svr):
     '''
     This function creates a definitive learning set containing the information from the three initial ones.
