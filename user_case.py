@@ -19,7 +19,7 @@ class UserCase:
 
     def get_maep_socal(self):
         if not self.maep_socal:
-            self.calculate_maep_socal()
+            self.calculate_maep()
         return self.maep_socal
 
     def get_maep_svr(self):
@@ -27,13 +27,38 @@ class UserCase:
             self.calculate_maep_svr()
         return self.maep_svr
 
-    def calculate_maep_socal(self):
-        # TODO implement
-        self.maep_socal = random.rand()
+    def calculate_maep(self):
+        review_tuples = list(self.reviews.items())
+        i = 0
+        list_size = len(review_tuples)
+        pairs = ((list_size * (
+                list_size + 1)) / 2) - list_size  # (((n+1)*n)/2) -n Sumatory from 1 to n minus N (no pairs with themselves)
+        correct_socal_pairs = 0
+        correct_svr_pairs = 0
+        while i < list_size:
+            sample = review_tuples[i][1]
+            j = i + 1
+            while j < list_size:
+                pair = review_tuples[j][1]
 
-    def calculate_maep_svr(self):
-        # TODO implement
-        self.maep_svr = random.rand()
+                # TODO check speed differences with different if structure
+                # check socal pair
+                if sample.user_rating > pair.user_rating and sample.irr_socal > pair.irr_socal:
+                    correct_socal_pairs += 1
+                elif sample.user_rating <= pair.user_rating and sample.irr_socal <= pair.irr_socal:
+                    correct_socal_pairs += 1
+
+                # check svr pair
+                if sample.user_rating > pair.user_rating and sample.irr_svr > pair.irr_svr:
+                    correct_svr_pairs += 1
+                elif sample.user_rating <= pair.user_rating and sample.irr_svr <= pair.irr_svr:
+                    correct_svr_pairs += 1
+
+                j += 1
+            i += 1
+
+        self.maep_socal = (pairs - correct_socal_pairs) / float(pairs)
+        self.maep_svr = (pairs - correct_svr_pairs) / float(pairs)
 
     def add_review(self, review):
         if type(review) is BaseCase:

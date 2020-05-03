@@ -5,6 +5,11 @@ from io_management import *
 
 RUTA_BASE = 'ficheros_entrada/'
 
+# TODO: Implementar los calculos maep en usuarios
+# TODO: una integración de textos de un UserCase
+# TODO: Crear un fichero de set nuevo de user cases, una sola linea de texto, usuario, maeps o clase directamente, y review texto (el texto a parte quiza)
+# TODO: usar el nuevo set para attribute_management y seguir adelante como planeado
+
 if __name__ == "__main__":
     entries_socal_app = read_partial_set(RUTA_BASE + 'result-IMDB-SOCAL.txt')
     entries_svr_app = read_partial_set(RUTA_BASE + 'result-IMDB-SVR62.txt')
