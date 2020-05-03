@@ -10,6 +10,7 @@ TAG_UR = "user_rating"
 TAG_SVR = "svr"
 TAG_SOCAL = "socal"
 TAG_REVIEW = "review"
+TAG_CLASS = "class"
 
 
 def read_partial_set(file_name, mode=RESSET):
@@ -20,7 +21,7 @@ def read_partial_set(file_name, mode=RESSET):
     :param mode: The reading mode, by defaut "RESSET" (for RESult SET). The other option would be "REVSET" (REView SET)
     :return: array of dictionaries with all the entries in the file
     '''
-    entries = []
+    entries = {}
 
     f = open(file_name, "r")
 
@@ -51,12 +52,12 @@ def read_partial_set(file_name, mode=RESSET):
                 raise Exception('No estimation tag found')
             values[estimation_method] = abs(float(values[estimation_method]) - float(values[TAG_UR]))
 
-        entries.append(values)
+        entries[values[TAG_RID]] = values
 
     return entries
 
 
-def split_set_by_class(entries):
+def assing_class(entries):
     '''
     This function splits a set of examples in accordance to their performance with diferent training methods
     (labeled TAG_SVR and TAG_SOCAL)
@@ -64,47 +65,49 @@ def split_set_by_class(entries):
     :return: A dictionary with two elements, the first corresponding to the SVR instances, the second corresponding to
     the SOCAL instances. They can be accessed using the constants TAG_SVR and TAG_SOCAL as keys.
     '''
-    set_svr = []
-    set_socal = []
-    sets = {TAG_SVR: set_svr, TAG_SOCAL: set_socal}
-    for entry in entries:
-        if entry[TAG_SVR] < entry[TAG_SOCAL]:  # because the absolute error is smaller in SVR, goes to setSVR
-            set_svr.append(entry)
+
+    for key in entries:
+        entry = entries[key]
+        if entry[TAG_SVR] < entry[TAG_SOCAL]:  # because the absolute error is smaller in SVR, assings svr class
+            entry[TAG_CLASS] = TAG_SVR
         else:
-            set_socal.append(entry)
+            entry[TAG_CLASS] = TAG_SOCAL
 
-    return sets
+    return entries
 
 
-def get_entry(entry_id, entry_set, remove=False):
+def get_entry(entry_id, entry_dict, remove=False):
     '''
     This function searches for an entry in a given set that matches a given id
     :param entry_id: The id to search (int)
-    :param entry_set: A set of entries
+    :param entry_dict: A set of entries
     :param remove: A flag that deletes the found entry from the original list if enabled. False by default.
     :return: The entry in case the id exists, None if not found
     '''
-    if not entry_set:
+    if not entry_dict:
         return None
 
-    i = 0
-    entry = entry_set[i]
-    max_len = len(entry_set)
-    while not entry[TAG_RID] == entry_id and i < max_len - 1:
-        i += 1
-        entry = entry_set[i]
+    try:
+        result = entry_dict[entry_id]
 
-    if i == max_len - 1:
+        if remove:  # We remove the key if requested
+            del entry_dict[entry_id]
+
+        return result
+    except KeyError:
         return None
+
+
+def check_method_set(result_set, tag):
+    if tag in list(result_set.keys())[0]:
+        return  True
     else:
-        if remove:
-            entry_set.remove(entry)
-        return entry
+        return False
 
 
 # TODO hacer el orden de los argumentos intercambiables como en la lectura de fichero (comprobando que clave existe en
 #   arg1
-def join_result_sets(set_socal, set_svr):
+def join_result_sets(set1, set2):
     '''
     This method takes to sets with only one estimation and combines the in a set of cases with both estimations.
     This method is faster if both sets are sorted by TAG_RID
@@ -112,7 +115,26 @@ def join_result_sets(set_socal, set_svr):
     :param set_svr: second set
     :return: combined set
     '''
-    for socentry in set_socal:  # Remove flat to true to optimize search of partner speed (works best with sorted sets)
+
+    set_socal=None
+    set_svr=None
+
+    if check_method_set(set1, TAG_SVR):
+        set_svr=set1
+    elif check_method_set(set2, TAG_SVR):
+        set_socal=set2
+    else:
+        raise Exception("No SVR set in join")
+
+    if check_method_set(set1, TAG_SOCAL):
+        set_svr=set1
+    elif check_method_set(set2, TAG_SOCAL):
+        set_socal=set2
+    else:
+        raise Exception("No SOCAL set in join")
+
+    for sockey in set_socal:  # Remove flat to true to optimize search of partner speed (works best with sorted sets)
+        socentry = set_socal[sockey]
         svr_partner = get_entry(socentry[TAG_RID], set_svr, True)
         if svr_partner:
             socentry[TAG_SVR] = svr_partner[
