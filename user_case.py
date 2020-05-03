@@ -1,5 +1,7 @@
 from random import random
 
+from base_case import BaseCase
+
 
 class UserCase:
     reviews = {}
@@ -30,3 +32,10 @@ class UserCase:
     def calculate_maep_svr(self):
         # TODO implement
         self.maep_svr = random.rand()
+
+    def __init__(self, user_id):
+        self.user_id = user_id
+
+    def add_review(self, review):
+        if isinstance(BaseCase, review):
+            self.reviews[review.rev_id] = review

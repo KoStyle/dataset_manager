@@ -1,5 +1,6 @@
 from base_case import BaseCase
 from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET
+from user_case import UserCase
 
 SEPARATOR = "\t"
 
@@ -139,12 +140,12 @@ def join_result_sets(set1, set2):
 def join_partial_set_entries(set_results):
     '''
     This function creates a definitive learning set containing the information from the three initial ones.
-    :param set_results: The file from where we get the SOCAL absolute error of the case following the formula
-    absolute_error = (user_ratin - socal_estimate)
-    :param set_results_svr: The file from where we get the SVR absolute error of the case following the formula
-    absolute_error = (user_ratin - svr_estimate)
-    :return: A list of "BaseCase" objects containing all the initial information, i.e.: without calculated attributes
+    :param set_results: The dictionary with all the reviews as stated in the input file
+    :return: A list of "UserCase" objects containing all the initial information, i.e.: without calculated attributes
     '''
+
+    users_dict = {}
+
     base_cases = []
     for entry_key in set_results:
         entry = set_results[entry_key]
@@ -157,6 +158,15 @@ def join_partial_set_entries(set_results):
         case.irr_svr = entry[TAG_SVR]
         case.user_rating = entry[TAG_UR]
 
+        # We add the review to the corresponding user
+        if case.user_id not in users_dict:
+            user_case = UserCase(case.user_id)
+            users_dict[user_case.get_id()] = user_case
+        else:
+            user_case = users_dict[case.user_id]
+
+        user_case.add_review(case)
+
         base_cases.append(case)
 
-    return base_cases
+    return users_dict
