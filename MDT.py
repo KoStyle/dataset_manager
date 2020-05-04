@@ -1,5 +1,5 @@
 import nltk
-
+import timeit
 from constants import REVSET
 from io_management import *
 
@@ -16,7 +16,23 @@ if __name__ == "__main__":
     entries_comments = read_partial_set(RUTA_BASE + 'revs_imdb.txt', REVSET)
     complete_results = assing_class(join_result_sets(entries_socal_app, entries_svr_app))
     user_cases = join_partial_set_entries(complete_results)
-    print(len(user_cases))
+    # print(len(user_cases))
+
+    start = timeit.timeit()
+    user = list(user_cases.items())[0][1]
+
+    for tupla in user_cases.items():
+        user = tuple[1]
+        user.get_maep_socal()
+    end = timeit.timeit()
+
+    print("Tiempo tardado %s" % str(end - start))
+
+    for tupla in user_cases.items():
+        user = tupla[1]
+
+        print("Maeps %s %s" % (user.get_maep_socal(), user.get_maep_svr()))
+
 # print(len(sorted_by_class[TAG_SOCAL]))
 
 # nltk.download('averaged_perceptron_tagger')

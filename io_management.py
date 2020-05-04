@@ -154,9 +154,9 @@ def join_partial_set_entries(set_results):
         case.user_id = entry[TAG_UID]
         case.product_id = entry[TAG_PID]
         #case.review = entry[TAG_REVIEW]  #Only exists in comment sets (we separated that)
-        case.irr_socal = entry[TAG_SOCAL]
-        case.irr_svr = entry[TAG_SVR]
-        case.user_rating = entry[TAG_UR]
+        case.irr_socal = float(entry[TAG_SOCAL])
+        case.irr_svr = float(entry[TAG_SVR])
+        case.user_rating = float(entry[TAG_UR])
 
         # We add the review to the corresponding user
         if case.user_id not in users_dict:
