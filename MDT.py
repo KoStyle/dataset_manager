@@ -2,6 +2,8 @@ import nltk
 import timeit
 from constants import REVSET
 from io_management import *
+from util import chronometer
+from util import print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -9,6 +11,10 @@ RUTA_BASE = 'ficheros_entrada/'
 # TODO: una integración de textos de un UserCase
 # TODO: Crear un fichero de set nuevo de user cases, una sola linea de texto, usuario, maeps o clase directamente, y review texto (el texto a parte quiza)
 # TODO: usar el nuevo set para attribute_management y seguir adelante como planeado
+
+
+
+
 
 if __name__ == "__main__":
     entries_socal_app = read_partial_set(RUTA_BASE + 'result-IMDB-SOCAL.txt')
@@ -18,15 +24,17 @@ if __name__ == "__main__":
     user_cases = join_partial_set_entries(complete_results)
     # print(len(user_cases))
 
-    start = timeit.timeit()
-    user = list(user_cases.items())[0][1]
+    @chronometer
+    def test():
+        user = list(user_cases.items())[0][1]
 
-    for tupla in user_cases.items():
-        user = tuple[1]
-        user.get_maep_socal()
-    end = timeit.timeit()
+        for tupla in user_cases.items():
+            user = tupla[1]
+            user.get_maep_socal()
 
-    print("Tiempo tardado %s" % str(end - start))
+
+    test()
+    print_chrono()
 
     for tupla in user_cases.items():
         user = tupla[1]
