@@ -1,7 +1,7 @@
 def generate_attributes(dict_cases, dict_text, list_attgenerators):
     '''
     This function generates as many attributes for the text in a user case based on the generator objects passed in
-    the arguments. These objects must ducktype the method "get_Attr_id()" and "get_Attr(case, text)"
+    the arguments. These objects must ducktype the method "get_Attr_id()" and "get_Attr( text)"
     :param dict_cases:
     :param dict_text:
     :param list_attgenerators:
@@ -12,6 +12,6 @@ def generate_attributes(dict_cases, dict_text, list_attgenerators):
 
     for case_keys, case_data in dict_cases:
         for generator in list_attgenerators:
-            case_data.add_attribute(generator.get_attr_id(), generator.get_attr(case_data.))
+            case_data.add_attribute(generator.get_attr_id(), generator.get_attr(case_data.get_text()))
 
     return
