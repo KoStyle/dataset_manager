@@ -57,7 +57,7 @@ except LookupError:
 
 # nltk.download('averaged_perceptron_tagger')
 # nltk.download('universal_tagset')
-tokens = nltk.word_tokenize("My name is Phillip Douglass, bitch.")
+tokens = nltk.word_tokenize("My name is Phillip Douglass, the most beautilful in this amazing world, bitch.")
 
 tagged = nltk.pos_tag(tokens, tagset='universal')
 
