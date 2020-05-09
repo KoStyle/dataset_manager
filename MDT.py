@@ -40,8 +40,25 @@ RUTA_BASE = 'ficheros_entrada/'
 
 # print(len(sorted_by_class[TAG_SOCAL]))
 
-nltk.download('averaged_perceptron_tagger')
-nltk.download('punkt')
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('taggers/averaged_perceptron_tagger')
+except LookupError:
+    nltk.download('averaged_perceptron_tagger')
+
+try:
+    nltk.data.find('taggers/universal_tagset')
+except LookupError:
+    nltk.download('universal_tagset')
+
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('universal_tagset')
 tokens = nltk.word_tokenize("My name is Phillip Douglass, bitch.")
 
-print(tokens)
+tagged = nltk.pos_tag(tokens, tagset='universal')
+
+print(tagged)
