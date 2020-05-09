@@ -1,5 +1,3 @@
-import string
-
 import nltk
 
 from constants import TAG_PRON, TAG_VERB, TAG_ADJ, TAG_NOUN, TAGSET, TAG_DET
@@ -9,11 +7,10 @@ def get_wc(text):
     if type(text) is not str or text == "":
         return -1
     else:
-        # We clean up the text from characters so the word count gets only propper stuff.
+        # We clean up the text from characters so the word count gets only proper stuff.
         for c in '.,:;-_?!\n':
             text = text.replace(c, ' ')
         return len(nltk.word_tokenize(text))
-
 
 def get_tag_count(text, tag):
     tags = nltk.pos_tag(nltk.word_tokenize(text), tagset=TAGSET)
