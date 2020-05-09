@@ -2,6 +2,7 @@ from random import random
 from random import sample
 
 from base_case import BaseCase
+from constants import TAG_REVIEW
 
 
 class UserCase:
@@ -21,22 +22,29 @@ class UserCase:
     def get_rev(self, rev_id):
         return self.reviews[rev_id]
 
-    def get_text(self, dict_text):
-        if not self.rev_text_concat or self.rev_text_amount == 0:
-            for rev_key in self.reviews:
-                self.reviews += " " + dict_text[rev_key]
-            self.rev_text_amount = len(list(self.reviews))
-            self.rev_text_concat = self.rev_text_concat.strip()
-            return self.rev_text_concat
+    def get_text(self, dict_text, amount=-1):
+        '''
+        This method concatenates a random number of text reviews into a single string attribute of the case. It stores the
+        last result and only recalculates if the amount required is different.
+        :param dict_text: Dictionary with all the text reviews
+        :param amount: Amount of reviews to concat
+        :return:
+        '''
+        if amount < 0:
+            amount = len(list(self.reviews))
 
-        return self.rev_text_concat
-
-    def get_text(self, dict_text, amount):
         if not self.rev_text_concat or self.rev_text_amount != amount:
+            self.rev_text_concat = ""
             self.rev_text_amount = amount
-            sample_revs = sample(list(dict_text))
-            for rev_keys in sample_revs:
-                self.reviews += " " + rev_keys[1].review
+
+            if amount == len(list(self.reviews)):
+                sample_revs = self.reviews
+            else:
+                sample_revs = sample(list(dict_text), amount)
+
+            for rev_key in sample_revs:
+                rev_text = dict_text[rev_key]
+                self.rev_text_concat = self.rev_text_concat + " " + rev_text[TAG_REVIEW]
             self.rev_text_concat = self.rev_text_concat.strip()
 
         return self.rev_text_concat

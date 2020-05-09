@@ -6,9 +6,12 @@ from constants import TAG_PRON, TAG_VERB, TAG_ADJ, TAG_NOUN, TAGSET, TAG_DET
 
 
 def get_wc(text):
-    if type(text) is not string or text == "":
+    if type(text) is not str or text == "":
         return -1
     else:
+        # We clean up the text from characters so the word count gets only propper stuff.
+        for c in '.,:;-_?!\n':
+            text = text.replace(c, ' ')
         return len(nltk.word_tokenize(text))
 
 

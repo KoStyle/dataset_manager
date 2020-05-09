@@ -1,17 +1,9 @@
 from base_case import BaseCase
-from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET
+from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
+    TAG_UID, TAG_PID, TAG_UR
 from user_case import UserCase
 
-SEPARATOR = "\t"
 
-TAG_RID = "rev_id"
-TAG_UID = "user_id"
-TAG_PID = "product_id"
-TAG_UR = "user_rating"
-TAG_SVR = "svr"
-TAG_SOCAL = "socal"
-TAG_REVIEW = "review"
-TAG_CLASS = "class"
 
 
 def read_partial_set(file_name, mode=RESSET):
