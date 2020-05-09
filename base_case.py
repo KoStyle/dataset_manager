@@ -24,4 +24,4 @@ class BaseCase:
         self.attributes = {}
 
     def compute_attr(self, attributer):
-        self.attributes[attributer.att_name] = attributer.eval_review(self.review)
+        self.attributes[attributer.att_id()] = attributer.eval_review(self.review)

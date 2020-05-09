@@ -1,4 +1,5 @@
 from random import random
+from random import sample
 
 from base_case import BaseCase
 
@@ -8,14 +9,37 @@ class UserCase:
     def __init__(self, user_id):
         self.user_id = user_id
         self.reviews = {}
+        self.rev_text_concat = None
+        self.rev_text_amount = 0
         self.maep_socal = None
         self.maep_svr = None
+        self.attributes = {}
 
     def get_id(self):
         return self.user_id
 
     def get_rev(self, rev_id):
         return self.reviews[rev_id]
+
+    def get_text(self, dict_text):
+        if not self.rev_text_concat or self.rev_text_amount == 0:
+            for rev_key in self.reviews:
+                self.reviews += " " + dict_text[rev_key]
+            self.rev_text_amount = len(list(self.reviews))
+            self.rev_text_concat = self.rev_text_concat.strip()
+            return self.rev_text_concat
+
+        return self.rev_text_concat
+
+    def get_text(self, dict_text, amount):
+        if not self.rev_text_concat or self.rev_text_amount != amount:
+            self.rev_text_amount = amount
+            sample_revs = sample(list(dict_text))
+            for rev_keys in sample_revs:
+                self.reviews += " " + rev_keys[1].review
+            self.rev_text_concat = self.rev_text_concat.strip()
+
+        return self.rev_text_concat
 
     def get_maep_socal(self):
         if not self.maep_socal:
@@ -75,3 +99,6 @@ class UserCase:
     def add_review(self, review):
         if type(review) is BaseCase:
             self.reviews[review.rev_id] = review
+
+    def add_attribute(self, attr_id, attr_value):
+        self.attributes[attr_id] = attr_value

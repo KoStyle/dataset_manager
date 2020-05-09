@@ -7,7 +7,7 @@ from util import print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
-# TODO: Implementar los calculos maep en usuarios
+
 # TODO: una integración de textos de un UserCase
 # TODO: Crear un fichero de set nuevo de user cases, una sola linea de texto, usuario, maeps o clase directamente, y review texto (el texto a parte quiza)
 # TODO: usar el nuevo set para attribute_management y seguir adelante como planeado
@@ -26,12 +26,9 @@ if __name__ == "__main__":
 
     @chronometer
     def test():
-        user = list(user_cases.items())[0][1]
-
-        for tupla in user_cases.items():
-            user = tupla[1]
-            user.get_maep_socal()
-
+        for tupla_user in user_cases.items():
+            user_case = tupla_user[1]
+            user_case.get_maep_socal()
 
     test()
     print_chrono()
