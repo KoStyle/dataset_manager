@@ -12,6 +12,7 @@ def get_wc(text):
             text = text.replace(c, ' ')
         return len(nltk.word_tokenize(text))
 
+
 def get_tag_count(text, tag):
     tags = nltk.pos_tag(nltk.word_tokenize(text), tagset=TAGSET)
 

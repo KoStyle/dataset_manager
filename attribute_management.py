@@ -10,8 +10,8 @@ def generate_attributes(dict_cases, dict_text, list_attgenerators):
     if not dict_cases or not dict_text or not list_attgenerators:
         raise Exception("An empty parameter received")
 
-    for case_keys, case_data in dict_cases:
+    for case_keys, case_data in dict_cases.items():
         for generator in list_attgenerators:
-            case_data.add_attribute(generator.get_attr_id(), generator.get_attr(case_data.get_text()))
+            case_data.add_attribute(generator.get_attr_id(), generator.get_attr(case_data.get_text(dict_text)))
 
     return

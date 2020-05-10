@@ -42,8 +42,14 @@ class VoidAttGen:
     @staticmethod
     def gen_sentences():
         def get_sentence_count(text):
-            clean_txt = text.replace('...', '') #We delete three consecutive points
-            return len(clean_txt.split('.'))
+            # clean_txt = text.replace('...', '')  # We delete three consecutive points
+            sentence_count = 0
+            sentences = text.split('.')
+            for sent in sentences:
+                if sent != '':
+                    sentence_count += 1
+
+            return sentence_count
 
         return VoidAttGen('SENT_COUNT', 'INT', get_sentence_count)
 
