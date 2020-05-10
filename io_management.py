@@ -1,9 +1,7 @@
 from base_case import BaseCase
 from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
-    TAG_UID, TAG_PID, TAG_UR
+    TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW
 from user_case import UserCase
-
-
 
 
 def read_partial_set(file_name, mode=RESSET):
@@ -129,7 +127,7 @@ def join_result_sets(set1, set2):
 
 # This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said
 # entries to create a complete set
-def join_partial_set_entries(set_results):
+def join_partial_set_entries(set_results, set_comments=None):
     '''
     This function creates a definitive learning set containing the information from the three initial ones.
     :param set_results: The dictionary with all the reviews as stated in the input file
@@ -145,7 +143,8 @@ def join_partial_set_entries(set_results):
         case.rev_id = entry[TAG_RID]
         case.user_id = entry[TAG_UID]
         case.product_id = entry[TAG_PID]
-        #case.review = entry[TAG_REVIEW]  #Only exists in comment sets (we separated that)
+        if set_comments:
+            case.review = set_comments[entry_key][TAG_REVIEW]  #Only exists in comment sets (we separated that)
         case.irr_socal = float(entry[TAG_SOCAL])
         case.irr_svr = float(entry[TAG_SVR])
         case.user_rating = float(entry[TAG_UR])

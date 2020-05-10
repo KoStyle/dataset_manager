@@ -22,7 +22,7 @@ if __name__ == "__main__":
     entries_svr_app = read_partial_set(RUTA_BASE + 'result-IMDB-SVR62.txt')
     entries_comments = read_partial_set(RUTA_BASE + 'revs_imdb.txt', REVSET)
     complete_results = assing_class(join_result_sets(entries_socal_app, entries_svr_app))
-    user_cases = join_partial_set_entries(complete_results)
+    user_cases = join_partial_set_entries(complete_results, entries_comments)
 
 
     # print(len(user_cases))
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     @chronometer
     def test():
         user_case = list(user_cases.items())[0][1]
-        texto = user_case.get_text(entries_comments)
+        texto = user_case.get_text()
         # print("Longitud del texto: %d" % len(texto))
         list_generators = []
         gen_tmp = VoidAttGen.gen_wc()
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         list_generators.append(gen_adj)
 
         dict_temporal = {user_case.get_id(): user_case}
-        generate_attributes(dict_temporal, entries_comments, list_generators)
+        # generate_attributes(dict_temporal, entries_comments, list_generators)
 
         print(user_case.attributes)
 
