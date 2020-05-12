@@ -1,6 +1,6 @@
 from random import random
 from random import sample
-
+import sqlite3
 from base_case import BaseCase
 from constants import TAG_REVIEW
 
@@ -109,3 +109,15 @@ class UserCase:
 
     def add_attribute(self, attr_id, attr_value):
         self.attributes[attr_id] = attr_value
+
+    def db_log_instance(self, conn: sqlite3.Connection):
+        c = conn.cursor()
+        # TODO: build sql inset statement for the concat header, and a loop for the attributes (if exists, update)
+
+    def db_list_instances(self, conn: sqlite3.Connection):
+        print("Unimplemented")
+        # TODO: build sql select to list all the TIDs for this user
+
+    def db_load_instance(self, conn: sqlite3.Connection, tid):
+        print("Unimplemented")
+        # TODO: Build sql select for a specific TID of this user and load its values (attributes included)
