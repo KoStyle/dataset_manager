@@ -2,6 +2,7 @@ from base_case import BaseCase
 from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
     TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW
 from user_case import UserCase
+import sqlite3
 
 
 def read_partial_set(file_name, mode=RESSET):
@@ -144,7 +145,7 @@ def join_partial_set_entries(set_results, set_comments=None):
         case.user_id = entry[TAG_UID]
         case.product_id = entry[TAG_PID]
         if set_comments:
-            case.review = set_comments[entry_key][TAG_REVIEW]  #Only exists in comment sets (we separated that)
+            case.review = set_comments[entry_key][TAG_REVIEW]  # Only exists in comment sets (we separated that)
         case.irr_socal = float(entry[TAG_SOCAL])
         case.irr_svr = float(entry[TAG_SVR])
         case.user_rating = float(entry[TAG_UR])
@@ -161,3 +162,49 @@ def join_partial_set_entries(set_results, set_comments=None):
         base_cases.append(case)
 
     return users_dict
+
+
+def create_database_schema():
+    conn = sqlite3.connect('example.db')
+
+    c = conn.cursor()
+    # c.execute("DROP TABLE texto_combi")
+
+    try:
+        try:
+            c.execute("CREATE TABLE CONCATS ("
+                      "tid INTEGER PRIMARY KEY, "
+                      "uid text, "
+                      "numrevs int, "
+                      "revstr text)")
+        except sqlite3.OperationalError as e:
+            print(e)
+
+        try:
+            c.execute("CREATE TABLE MATTR ("
+                      "aid text PRIMARY KEY, "
+                      "desc text, "
+                      "type text)")
+        except sqlite3.OperationalError as e:
+            print(e)
+
+        try:
+            c.execute("CREATE TABLE ATTGEN ("
+                      "tid INTEGER, "
+                      "aid text, "
+                      "value text, "
+                      "cdate date, "
+                      "udate date, "
+                      "version int, "
+                      "PRIMARY KEY(tid,aid), "
+                      "FOREIGN KEY (tid) REFERENCES CONCATS (tid), "
+                      "FOREIGN KEY (aid) REFERENCES MATTR (aid))")
+        except sqlite3.OperationalError as e:
+            print(e)
+    except sqlite3.Error as e:
+        print(e.__class__)
+        print(e)
+    finally:
+        c.close()
+        conn.commit()
+        conn.close()

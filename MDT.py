@@ -4,7 +4,8 @@ import sqlite3
 
 from attribute_management import generate_attributes
 from constants import REVSET
-from io_management import read_partial_set, assing_class, join_result_sets, join_partial_set_entries
+from io_management import read_partial_set, assing_class, join_result_sets, join_partial_set_entries, \
+    create_database_schema
 
 from util import chronometer
 from util import print_chrono
@@ -12,7 +13,6 @@ from util import print_chrono
 from att_generators.void_attr_gen import VoidAttGen
 
 RUTA_BASE = 'ficheros_entrada/'
-
 
 
 # TODO: Crear un fichero de set nuevo de user cases, una sola linea de texto, usuario, maeps o clase directamente, y review texto (el texto a parte quiza)
@@ -50,25 +50,7 @@ def load_usercase_set():
 
 
 if __name__ == "__main__":
-    conn = sqlite3.connect('example.db')
-
-    c = conn.cursor()
-    # c.execute("DROP TABLE texto_combi")
-    # c.execute("CREATE TABLE texto_combi (tid INTEGER PRIMARY KEY AUTOINCREMENT, uid text, revnum int, texto text)")
-
-    c.execute("Insert into texto_combi (uid, revnum, texto) values ('paco', 9, 'esta es la review de paco, finjamos que son 9')")
-    c.execute("select * from texto_combi")
-    for row in c.execute("select * from texto_combi"):
-        print(row)
-    c.close()
-    conn.commit()
-
-
-
-
-
-
-
+    create_database_schema()
 
     # print(len(user_cases))
 
@@ -90,7 +72,6 @@ if __name__ == "__main__":
     #     # generate_attributes(dict_temporal, entries_comments, list_generators)
     #
     #     print(user_case.attributes)
-
 
     # test()
     # print_chrono()
