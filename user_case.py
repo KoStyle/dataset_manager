@@ -117,23 +117,28 @@ class UserCase:
         insert_header = "INSERT INTO %s VALUES (?, ?, ?, ?)" % DBT_CONCATS
         insert_attr = "INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
         select_attrs = "SELECT %s FROM %s WHERE %s=?" % (ATTGEN_AID, DBT_ATTGEN, ATTGEN_TID)
-
+        flag_insert = False
         c = conn.cursor()
 
         if self.txt_instance == -1:
             c.execute(select_max_tid)
-            self.txt_instance = c.fetchone() + 1
-            c.execute(insert_header, (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
+            max_tid = c.fetchone()[0]
+            if max_tid and self.rev_text_amount != len(self.reviews):  # we just want 1 full instance (all reviews in)
+                self.txt_instance = max_tid + 1
+                flag_insert = True
+            elif not max_tid:
+                self.txt_instance = 1
+                flag_insert = True
 
-            for attkey, attdata in self.attributes.items():
-                c.execute(insert_attr, (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
-        else:
-            c.execute(select_attrs)
-            logged_attr = c.fetchall()
+            if flag_insert:
+                c.execute(insert_header, (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
 
-            for attkey, attdata in self.attributes.items():
-                if attkey not in logged_attr:
-                    c.execute(insert_attr, (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
+                c.execute(select_attrs, (self.txt_instance,))
+                logged_attr = c.fetchall()
+
+                for attkey, attdata in self.attributes.items():
+                    if attkey not in logged_attr:
+                        c.execute(insert_attr, (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
         c.close()
         conn.commit()
 
@@ -142,7 +147,7 @@ class UserCase:
         select_instances = "SELECT %s FROM %s WHERE %s=?" % (CONCATS_TID, DBT_CONCATS, CONCATS_UID)
 
         c = conn.cursor()
-        c.execute(select_instances, self.user_id)
+        c.execute(select_instances, (self.user_id,))
         instances = c.fetchall()
         return instances
 

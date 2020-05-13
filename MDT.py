@@ -2,6 +2,7 @@ import nltk
 import timeit
 import sqlite3
 
+import user_case
 from attribute_management import generate_attributes
 from constants import REVSET
 from io_management import read_partial_set, assing_class, join_result_sets, join_partial_set_entries, \
@@ -51,6 +52,16 @@ def load_usercase_set():
 
 if __name__ == "__main__":
     create_database_schema()
+
+    user_cases = load_usercase_set()
+    uc: user_case.UserCase = list(user_cases.items())[0][1]
+    uc.get_text()
+
+    conn = sqlite3.Connection('example.db')
+
+    uc.db_log_instance(conn)
+    instances = uc.db_list_instances(conn)
+    print(instances)
 
     # print(len(user_cases))
 
