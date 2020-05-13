@@ -54,8 +54,8 @@ if __name__ == "__main__":
     create_database_schema()
 
     user_cases = load_usercase_set()
-    uc: user_case.UserCase = list(user_cases.items())[0][1]
-    uc.get_text()
+    uc: user_case.UserCase = list(user_cases.items())[1][1]
+    uc.get_text(1)
 
     conn = sqlite3.Connection('example.db')
 

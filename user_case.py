@@ -3,7 +3,8 @@ from random import sample
 import sqlite3
 import datetime
 from base_case import BaseCase
-from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID
+from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
+    CONCATS_NUMRE, CONCATS_REVST
 
 
 class UserCase:
@@ -132,18 +133,17 @@ class UserCase:
 
             if flag_insert:
                 c.execute(insert_header, (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
-
                 c.execute(select_attrs, (self.txt_instance,))
                 logged_attr = c.fetchall()
 
                 for attkey, attdata in self.attributes.items():
                     if attkey not in logged_attr:
-                        c.execute(insert_attr, (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
+                        c.execute(insert_attr,
+                                  (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
         c.close()
         conn.commit()
 
     def db_list_instances(self, conn: sqlite3.Connection):
-        print("Unimplemented")
         select_instances = "SELECT %s FROM %s WHERE %s=?" % (CONCATS_TID, DBT_CONCATS, CONCATS_UID)
 
         c = conn.cursor()
@@ -151,8 +151,21 @@ class UserCase:
         instances = c.fetchall()
         return instances
 
-        # TODO: build sql select to list all the TIDs for this user
-
     def db_load_instance(self, conn: sqlite3.Connection, tid):
-        print("Unimplemented")
-        # TODO: Build sql select for a specific TID of this user and load its values (attributes included)
+        select_header = "SELECT %s, %s, %s, %s FROM %s WHERE %s=?" % (
+            CONCATS_TID, CONCATS_UID, CONCATS_NUMRE, CONCATS_REVST, DBT_CONCATS, CONCATS_TID)
+
+        c = conn.cursor()
+        c.execute(select_header, (tid,))
+
+        if c.rowcount == 1:
+            data = c.fetchone()
+            if self.user_id == data[1]:
+                self.txt_instance = data[0]
+                self.rev_text_concat = data[3]
+                self.rev_text_amount = data[2]
+            else:
+                print("Mismatched user_id!")
+        else:
+            print("TID not found")
+
