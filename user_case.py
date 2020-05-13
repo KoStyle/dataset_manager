@@ -1,8 +1,9 @@
 from random import random
 from random import sample
 import sqlite3
+import datetime
 from base_case import BaseCase
-from constants import TAG_REVIEW
+from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID
 
 
 class UserCase:
@@ -15,6 +16,7 @@ class UserCase:
         self.maep_socal = None
         self.maep_svr = None
         self.attributes = {}
+        self.txt_instance = -1
 
     def get_id(self):
         return self.user_id
@@ -111,11 +113,39 @@ class UserCase:
         self.attributes[attr_id] = attr_value
 
     def db_log_instance(self, conn: sqlite3.Connection):
+        select_max_tid = "SELECT MAX(%s) FROM %s" % (CONCATS_TID, DBT_CONCATS)
+        insert_header = "INSERT INTO %s VALUES (?, ?, ?, ?)" % DBT_CONCATS
+        insert_attr = "INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
+        select_attrs = "SELECT %s FROM %s WHERE %s=?" % (ATTGEN_AID, DBT_ATTGEN, ATTGEN_TID)
+
         c = conn.cursor()
-        # TODO: build sql inset statement for the concat header, and a loop for the attributes (if exists, update)
+
+        if self.txt_instance == -1:
+            c.execute(select_max_tid)
+            self.txt_instance = c.fetchone() + 1
+            c.execute(insert_header, (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
+
+            for attkey, attdata in self.attributes.items():
+                c.execute(insert_attr, (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
+        else:
+            c.execute(select_attrs)
+            logged_attr = c.fetchall()
+
+            for attkey, attdata in self.attributes.items():
+                if attkey not in logged_attr:
+                    c.execute(insert_attr, (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
+        c.close()
+        conn.commit()
 
     def db_list_instances(self, conn: sqlite3.Connection):
         print("Unimplemented")
+        select_instances = "SELECT %s FROM %s WHERE %s=?" % (CONCATS_TID, DBT_CONCATS, CONCATS_UID)
+
+        c = conn.cursor()
+        c.execute(select_instances, self.user_id)
+        instances = c.fetchall()
+        return instances
+
         # TODO: build sql select to list all the TIDs for this user
 
     def db_load_instance(self, conn: sqlite3.Connection, tid):
