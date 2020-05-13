@@ -157,8 +157,7 @@ class UserCase:
 
         c = conn.cursor()
         c.execute(select_header, (tid,))
-
-        if c.rowcount == 1:
+        if c.arraysize == 1:
             data = c.fetchone()
             if self.user_id == data[1]:
                 self.txt_instance = data[0]
