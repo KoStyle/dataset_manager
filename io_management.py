@@ -192,6 +192,7 @@ def create_database_schema():
             c.execute("CREATE TABLE ATTGEN ("
                       "tid INTEGER, "
                       "aid text, "
+                      "aseq INTEGER," #Sequential for complex attributes
                       "value text, "
                       "cdate date, "
                       "udate date, "
