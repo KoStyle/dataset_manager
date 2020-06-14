@@ -57,8 +57,10 @@ if __name__ == "__main__":
     uc = list(user_cases.items())[0][1]
 
     conn = sqlite3.Connection('example.db')
-    uc.get_text(1)
-    uc.db_log_instance(conn)
+
+    for x in range(20):
+        uc.get_text(x)
+        uc.db_log_instance(conn)
 
     instances = uc.db_list_instances(conn)
     uc.db_load_instance(conn, 6)

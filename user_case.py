@@ -147,6 +147,8 @@ class UserCase:
                     c.execute(select_attrs, (self.txt_instance,))
                     logged_attr = c.fetchall()
 
+
+                    #TODO esto puede fallar por logged_attr ser tupla en lugar de lista, ojo
                     for attkey, attdata in self.attributes.items():
                         if attkey not in logged_attr:
                             c.execute(insert_attr,
@@ -154,15 +156,45 @@ class UserCase:
         c.close()
         conn.commit()
 
+    def db_log_user(self, conn: sqlite3.Connection):
+        #TODO Implement
+        return
+
+    def db_log_review(self, conn: sqlite3.Connection):
+        #TODO Implement
+        return
+
+    def db_load_user(self, conn: sqlite3.Connection):
+        #TODO Implement
+        return
+
+    def db_log_review(self, conn: sqlite3.Connection):
+        #TODO Implement
+        return
+
+    def db_log_attr(self, conn: sqlite3.Connection):
+        #TODO Implement
+        return
+
+    def db_load_attr(self, conn: sqlite3.Connection):
+        #TODO Implement
+        return
+
+
+
     def db_list_instances(self, conn: sqlite3.Connection):
         select_instances = "SELECT %s FROM %s WHERE %s=?" % (CONCATS_TID, DBT_CONCATS, CONCATS_UID)
 
         c = conn.cursor()
         c.execute(select_instances, (self.user_id,))
         instances = c.fetchall()
-        return instances
+        list_instances = []
+        for inst in list(instances):
+            list_instances.append(inst[0])
+        return list_instances
 
     def db_load_instance(self, conn: sqlite3.Connection, tid):
+        #TODO also load the attributes
         select_header = "SELECT %s, %s, %s, %s FROM %s WHERE %s=?" % (
             CONCATS_TID, CONCATS_UID, CONCATS_NUMRE, CONCATS_REVST, DBT_CONCATS, CONCATS_TID)
 
