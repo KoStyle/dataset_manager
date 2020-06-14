@@ -35,9 +35,11 @@ class UserCase:
         if amount < 0:
             amount = len(list(self.reviews))
 
+        # We check if the user_case already has a text concatenation with the given amount
         if not self.rev_text_concat or self.rev_text_amount != amount:
             self.rev_text_concat = ""
             self.rev_text_amount = amount
+            self.txt_instance = -1  # we mark it as -1 because the to-be-created instance won't be in the db (probably)
 
             if amount == len(list(self.reviews)):
                 sample_revs = self.reviews
@@ -63,7 +65,7 @@ class UserCase:
         :return: Returns the SVR MAEP value of the UserCase
         '''
         if not self.maep_svr:
-            self.calculate_maep_svr()
+            self.calculate_maep()
         return self.maep_svr
 
     def calculate_maep(self):
@@ -115,6 +117,7 @@ class UserCase:
 
     def db_log_instance(self, conn: sqlite3.Connection):
         select_max_tid = "SELECT MAX(%s) FROM %s" % (CONCATS_TID, DBT_CONCATS)
+        select_max_amount = "SELECT MAX(%s) FROM %s" % (CONCATS_NUMRE, DBT_CONCATS)
         insert_header = "INSERT INTO %s VALUES (?, ?, ?, ?)" % DBT_CONCATS
         insert_attr = "INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
         select_attrs = "SELECT %s FROM %s WHERE %s=?" % (ATTGEN_AID, DBT_ATTGEN, ATTGEN_TID)
@@ -124,22 +127,30 @@ class UserCase:
         if self.txt_instance == -1:
             c.execute(select_max_tid)
             max_tid = c.fetchone()[0]
-            if max_tid and self.rev_text_amount != len(self.reviews):  # we just want 1 full instance (all reviews in)
-                self.txt_instance = max_tid + 1
-                flag_insert = True
-            elif not max_tid:
-                self.txt_instance = 1
-                flag_insert = True
+            c.execute(select_max_amount)
+            max_amount = c.fetchone()[0]
 
-            if flag_insert:
-                c.execute(insert_header, (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
-                c.execute(select_attrs, (self.txt_instance,))
-                logged_attr = c.fetchall()
+            # We insert the instance with autoincremented TID unless it is a tid of all reviews and
+            # we already have one of those (the calculation of attributes would be redundant, because the results would
+            # be the same)
+            if not (self.rev_text_amount == len(self.reviews) and self.rev_text_amount == max_amount):
+                if max_tid:
+                    self.txt_instance = max_tid + 1
+                    flag_insert = True
+                elif not max_tid:
+                    self.txt_instance = 1
+                    flag_insert = True
 
-                for attkey, attdata in self.attributes.items():
-                    if attkey not in logged_attr:
-                        c.execute(insert_attr,
-                                  (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
+                if flag_insert:
+                    c.execute(insert_header,
+                              (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
+                    c.execute(select_attrs, (self.txt_instance,))
+                    logged_attr = c.fetchall()
+
+                    for attkey, attdata in self.attributes.items():
+                        if attkey not in logged_attr:
+                            c.execute(insert_attr,
+                                      (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
         c.close()
         conn.commit()
 
@@ -157,7 +168,7 @@ class UserCase:
 
         c = conn.cursor()
         c.execute(select_header, (tid,))
-        if c.arraysize == 1:
+        if c.rowcount == 1:
             data = c.fetchone()
             if self.user_id == data[1]:
                 self.txt_instance = data[0]
@@ -167,4 +178,3 @@ class UserCase:
                 print("Mismatched user_id!")
         else:
             print("TID not found")
-
