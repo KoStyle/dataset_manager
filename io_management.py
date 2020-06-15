@@ -176,9 +176,23 @@ def create_database_schema():
         try:
             c.execute("CREATE TABLE MUSR ("
                       "uid text , "
-                      "class text, "
                       "dataset text,"
+                      "class text, "
                       "PRIMARY KEY (uid,dataset))")
+        except sqlite3.OperationalError as e:
+            print(e)
+
+        try:
+            c.execute("CREATE TABLE MREVS ("
+                      "rid text , "
+                      "dataset text,"
+                      "uid text, "
+                      "pid text, "
+                      "review text, "
+                      "socal real, "
+                      "svr real, "
+                      "PRIMARY KEY (rid),"
+                      "FOREIGN KEY (uid) REFERENCES MUSR (uid))")
         except sqlite3.OperationalError as e:
             print(e)
 

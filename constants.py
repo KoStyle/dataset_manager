@@ -26,10 +26,19 @@ DBT_CONCATS = "CONCATS"
 DBT_ATTGEN = "ATTGEN"
 DBT_MATTR = "MATTR"     #master attributes
 DBT_MUSR = "MUSR"       #master user
+DBT_MREVS = "MREVS"     #Master Reviews
 
 MUSR_UID = "uid"
 MUSR_CLASS = "class"
 MUSR_DS = "dataset"
+
+MREVS_RID = "rid"
+MREVS_DS = "dataset"
+MREVS_UID = "uid"
+MREVS_PID = "pid"
+MREVS_REVIEW = "review"
+MREVS_SOCAL = "socal"
+MREVS_SVR = "svr"
 
 MATTR_AID = "aid"
 MATTR_DESC = "desc"
