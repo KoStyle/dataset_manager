@@ -24,12 +24,12 @@ TAG_CLASS = "class"
 # DB CONSTANTS
 DBT_CONCATS = "CONCATS"
 DBT_ATTGEN = "ATTGEN"
-DBT_MATTR = "MATTR"
-DBT_MUSR = "MUSR"
+DBT_MATTR = "MATTR"     #master attributes
+DBT_MUSR = "MUSR"       #master user
 
 MUSR_UID = "uid"
 MUSR_CLASS = "class"
-MUSR_SET = "set"
+MUSR_DS = "dataset"
 
 MATTR_AID = "aid"
 MATTR_DESC = "desc"

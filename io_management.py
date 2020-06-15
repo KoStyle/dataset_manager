@@ -164,6 +164,7 @@ def join_partial_set_entries(set_results, set_comments=None):
     return users_dict
 
 
+# TODO change magic numbers for constants
 def create_database_schema():
     conn = sqlite3.connect('example.db')
 
@@ -171,12 +172,23 @@ def create_database_schema():
     # c.execute("DROP TABLE texto_combi")
 
     try:
+
+        try:
+            c.execute("CREATE TABLE MUSR ("
+                      "uid text , "
+                      "class text, "
+                      "dataset text,"
+                      "PRIMARY KEY (uid,dataset))")
+        except sqlite3.OperationalError as e:
+            print(e)
+
         try:
             c.execute("CREATE TABLE CONCATS ("
                       "tid INTEGER PRIMARY KEY, "
                       "uid text, "
                       "numrevs int, "
-                      "revstr text)")
+                      "revstr text,"
+                      "FOREIGN KEY (uid) REFERENCES MUSR (uid))")
         except sqlite3.OperationalError as e:
             print(e)
 
@@ -192,7 +204,7 @@ def create_database_schema():
             c.execute("CREATE TABLE ATTGEN ("
                       "tid INTEGER, "
                       "aid text, "
-                      "aseq INTEGER," #Sequential for complex attributes
+                      "aseq INTEGER,"  # Sequential for complex attributes
                       "value text, "
                       "cdate date, "
                       "udate date, "
