@@ -193,15 +193,15 @@ class UserCase:
             list_instances.append(inst[0])
         return list_instances
 
-    def db_load_instance(self, conn: sqlite3.Connection, tid):
+    def db_load_instance(self, conn: sqlite3.Connection, tid: int):
         #TODO also load the attributes
         select_header = "SELECT %s, %s, %s, %s FROM %s WHERE %s=?" % (
             CONCATS_TID, CONCATS_UID, CONCATS_NUMRE, CONCATS_REVST, DBT_CONCATS, CONCATS_TID)
 
         c = conn.cursor()
         c.execute(select_header, (tid,))
-        if c.rowcount == 1:
-            data = c.fetchone()
+        data = c.fetchone()
+        if data is not None:
             if self.user_id == data[1]:
                 self.txt_instance = data[0]
                 self.rev_text_concat = data[3]
