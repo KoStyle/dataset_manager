@@ -4,7 +4,7 @@ import sqlite3
 import datetime
 from base_case import BaseCase
 from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
-    CONCATS_NUMRE, CONCATS_REVST
+    CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR
 
 
 class UserCase:
@@ -147,8 +147,7 @@ class UserCase:
                     c.execute(select_attrs, (self.txt_instance,))
                     logged_attr = c.fetchall()
 
-
-                    #TODO esto puede fallar por logged_attr ser tupla en lugar de lista, ojo
+                    # TODO esto puede fallar por logged_attr ser tupla en lugar de lista, ojo
                     for attkey, attdata in self.attributes.items():
                         if attkey not in logged_attr:
                             c.execute(insert_attr,
@@ -157,44 +156,41 @@ class UserCase:
         conn.commit()
 
     def db_log_user(self, conn: sqlite3.Connection):
-        #TODO Implement
+        # TODO Implement
         return
 
-    def db_log_review(self, conn: sqlite3.Connection):
-        #TODO Implement
+    def __db_log_reviews(self, conn: sqlite3.Connection):
+        insert_reviews = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)"
+        uninserted_list = []
+        c = conn.cursor()
+        for key, value in self.reviews:
+            try:
+                c.execute(insert_reviews, (
+                value[TAG_RID], self.dataset, self.user_id, value[TAG_PID], value[TAG_REVIEW], float(value[TAG_SOCAL]),
+                float(value[TAG_SVR])))
+            except:
+                uninserted_list.append(key)
+
+        return
+
+    def __db_log_attr(self, conn: sqlite3.Connection):
+        # TODO Implement
         return
 
     def db_load_user(self, conn: sqlite3.Connection):
-        #TODO Implement
+        # TODO Implement
         return
 
-    def db_log_review(self, conn: sqlite3.Connection):
-        #TODO Implement
+    def __db_load_reviews(self, conn: sqlite3.Connection):
+        # TODO Implement
         return
 
-    def db_log_attr(self, conn: sqlite3.Connection):
-        #TODO Implement
+    def __db_load_attr(self, conn: sqlite3.Connection):
+        # TODO Implement
         return
-
-    def db_load_attr(self, conn: sqlite3.Connection):
-        #TODO Implement
-        return
-
-
-
-    def db_list_instances(self, conn: sqlite3.Connection):
-        select_instances = "SELECT %s FROM %s WHERE %s=?" % (CONCATS_TID, DBT_CONCATS, CONCATS_UID)
-
-        c = conn.cursor()
-        c.execute(select_instances, (self.user_id,))
-        instances = c.fetchall()
-        list_instances = []
-        for inst in list(instances):
-            list_instances.append(inst[0])
-        return list_instances
 
     def db_load_instance(self, conn: sqlite3.Connection, tid: int):
-        #TODO also load the attributes
+        # TODO also load the attributes
         select_header = "SELECT %s, %s, %s, %s FROM %s WHERE %s=?" % (
             CONCATS_TID, CONCATS_UID, CONCATS_NUMRE, CONCATS_REVST, DBT_CONCATS, CONCATS_TID)
 
@@ -210,3 +206,14 @@ class UserCase:
                 print("Mismatched user_id!")
         else:
             print("TID not found")
+
+    def db_list_instances(self, conn: sqlite3.Connection):
+        select_instances = "SELECT %s FROM %s WHERE %s=?" % (CONCATS_TID, DBT_CONCATS, CONCATS_UID)
+
+        c = conn.cursor()
+        c.execute(select_instances, (self.user_id,))
+        instances = c.fetchall()
+        list_instances = []
+        for inst in list(instances):
+            list_instances.append(inst[0])
+        return list_instances
