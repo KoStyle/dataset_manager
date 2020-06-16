@@ -4,13 +4,15 @@ import sqlite3
 import datetime
 from base_case import BaseCase
 from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
-    CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR
+    CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
+    CLASS_SVR
 
 
 class UserCase:
 
     def __init__(self, user_id):
         self.user_id = user_id
+        self.dataset = None
         self.reviews = {}
         self.rev_text_concat = None
         self.rev_text_amount = 0
@@ -112,6 +114,7 @@ class UserCase:
         if type(review) is BaseCase:
             self.reviews[review.rev_id] = review
 
+    ##CAREFUL, attr_value can be a list in case of BERT or PANDORA
     def add_attribute(self, attr_id, attr_value):
         self.attributes[attr_id] = attr_value
 
@@ -155,27 +158,52 @@ class UserCase:
         c.close()
         conn.commit()
 
+    #TODO test this shit out
     def db_log_user(self, conn: sqlite3.Connection):
-        # TODO Implement
-        return
+        insert_user = "INSERT INTO %s VALUES(?, ?, ?)" % DBT_MUSR
+        if self.maep_svr is None or self.maep_socal is None:
+            self.calculate_maep()
+        user_class = CLASS_NOCLASS
 
+        #We calculate the class to be expected in training for this user
+        if self.maep_svr < self.maep_socal:
+            user_class = CLASS_SVR
+        elif self.maep_svr > self.maep_socal: #If the maeps are equal, the class is NOCLASS
+            user_class = CLASS_SOCAL
+
+        c = conn.cursor()
+        try:
+            c.execute(insert_user, (self.user_id, self.dataset, user_class))
+        except sqlite3.Error:
+            return False
+        return True
+
+    # TODO Probar
     def __db_log_reviews(self, conn: sqlite3.Connection):
-        insert_reviews = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)"
+        insert_reviews = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_MREVS
         uninserted_list = []
         c = conn.cursor()
         for key, value in self.reviews:
             try:
                 c.execute(insert_reviews, (
-                value[TAG_RID], self.dataset, self.user_id, value[TAG_PID], value[TAG_REVIEW], float(value[TAG_SOCAL]),
-                float(value[TAG_SVR])))
-            except:
+                    value[TAG_RID], self.dataset, self.user_id, value[TAG_PID], value[TAG_REVIEW],
+                    float(value[TAG_SOCAL]),
+                    float(value[TAG_SVR])))
+            except sqlite3.Error:
                 uninserted_list.append(key)
+        return uninserted_list
 
-        return
-
+    # TODO test
     def __db_log_attr(self, conn: sqlite3.Connection):
-        # TODO Implement
-        return
+        insert_attributtes = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
+        uninserted_list = []
+        c = conn.cursor()
+        for key, value in self.attributes:
+            try:
+                c.execute(insert_attributtes, (self.txt_instance, key, -1, value, datetime.now(), None, 1))
+            except sqlite3.Error:
+                uninserted_list.append(key)
+        return uninserted_list
 
     def db_load_user(self, conn: sqlite3.Connection):
         # TODO Implement
@@ -190,7 +218,7 @@ class UserCase:
         return
 
     def db_load_instance(self, conn: sqlite3.Connection, tid: int):
-        # TODO also load the attributes
+        # TODO also load the attributes calling the method
         select_header = "SELECT %s, %s, %s, %s FROM %s WHERE %s=?" % (
             CONCATS_TID, CONCATS_UID, CONCATS_NUMRE, CONCATS_REVST, DBT_CONCATS, CONCATS_TID)
 

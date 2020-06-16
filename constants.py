@@ -46,6 +46,7 @@ MATTR_TYPE = "type"
 
 ATTGEN_TID = "tid"
 ATTGEN_AID = "aid"
+ATTGEN_ASEQ = "aseq"  #Sequential of the attribute (for multivalue attributes or vectors (wink wink BERT)
 ATTGEN_VAL = "value"
 ATTGEN_CDAT = "cdate"
 ATTGEN_UDAT = "udate"

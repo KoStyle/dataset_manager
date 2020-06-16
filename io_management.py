@@ -128,9 +128,11 @@ def join_result_sets(set1, set2):
 
 # This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said
 # entries to create a complete set
-def join_partial_set_entries(set_results, set_comments=None):
+def join_partial_set_entries(set_results, set_comments=None, ds=None):
     '''
     This function creates a definitive learning set containing the information from the three initial ones.
+    :param ds: String with the name of the dataset
+    :param set_comments: Set with the actual text reviews
     :param set_results: The dictionary with all the reviews as stated in the input file
     :return: A list of "UserCase" objects containing all the initial information, i.e.: without calculated attributes
     '''
@@ -153,6 +155,7 @@ def join_partial_set_entries(set_results, set_comments=None):
         # We add the review to the corresponding user
         if case.user_id not in users_dict:
             user_case = UserCase(case.user_id)
+            user_case.dataset = ds
             users_dict[user_case.get_id()] = user_case
         else:
             user_case = users_dict[case.user_id]
