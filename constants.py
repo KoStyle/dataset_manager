@@ -43,6 +43,7 @@ MREVS_SVR = "svr"
 MATTR_AID = "aid"
 MATTR_DESC = "desc"
 MATTR_TYPE = "type"
+MATTR_ACTI = "active"
 
 ATTGEN_TID = "tid"
 ATTGEN_AID = "aid"

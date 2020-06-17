@@ -158,7 +158,6 @@ class UserCase:
         c.close()
         conn.commit()
 
-    # TODO test this shit out
     def db_log_user(self, conn: sqlite3.Connection):
         insert_user = "INSERT INTO %s VALUES(?, ?, ?)" % DBT_MUSR
         if self.maep_svr is None or self.maep_socal is None:
@@ -182,7 +181,6 @@ class UserCase:
 
         return True
 
-    # TODO Probar
     def __db_log_reviews(self, conn: sqlite3.Connection):
         insert_reviews = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_MREVS
         uninserted_list = []

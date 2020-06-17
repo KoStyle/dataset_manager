@@ -213,6 +213,7 @@ def create_database_schema():
             c.execute("CREATE TABLE MATTR ("
                       "aid text PRIMARY KEY, "
                       "desc text, "
+                      "active BOOLEAN,"
                       "type text)")
         except sqlite3.OperationalError as e:
             print(e)
