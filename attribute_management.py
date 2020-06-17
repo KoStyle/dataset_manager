@@ -19,11 +19,14 @@ def attribute_generator_publisher():
     conn.close()
 
 
-# TODO probar
-def get_active_attr_generators():
+def get_active_attr_generators(optionalConn: sqlite3.Connection = None):
     active_generators = []
     select_attr = "SELECT aid FROM %s WHERE active = ?" % DBT_MATTR
-    conn = sqlite3.Connection('example.db')
+
+    if optionalConn:
+        conn= optionalConn
+    else:
+        conn = sqlite3.Connection('example.db')
     c = conn.cursor()
     c.execute(select_attr, (True,))
 
@@ -35,7 +38,7 @@ def get_active_attr_generators():
             flag_active = False
             i = 0
             while not flag_active or i < len(data):
-                if data[i]["aid"] == att.get_attr_id():
+                if data[i][0] == att.get_attr_id():
                     flag_active = True
                 i += 1
 
@@ -43,11 +46,11 @@ def get_active_attr_generators():
                 active_generators.append(att)
 
     c.close()
-    conn.close()
+    if not optionalConn:
+        conn.close()
     return active_generators
 
 
-# TODO Probar
 def __log_attributes(conn: sqlite3.Connection):
     insert_attr = "INSERT INTO %s VALUES(?, ?, ?, ?)" % DBT_MATTR
     uninserter_attr = []
