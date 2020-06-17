@@ -42,18 +42,18 @@ def generate_genlist():
     return list_generators
 
 
-def load_usercase_set():
+def load_usercase_set_IMBD():
     entries_socal_app = read_partial_set(RUTA_BASE + 'result-IMDB-SOCAL.txt')
     entries_svr_app = read_partial_set(RUTA_BASE + 'result-IMDB-SVR62.txt')
     entries_comments = read_partial_set(RUTA_BASE + 'revs_imdb.txt', REVSET)
     complete_results = assing_class(join_result_sets(entries_socal_app, entries_svr_app))
-    return join_partial_set_entries(complete_results, entries_comments)
+    return join_partial_set_entries(complete_results, entries_comments, "IMBD")
 
 
 if __name__ == "__main__":
     create_database_schema()
 
-    user_cases = load_usercase_set()
+    user_cases = load_usercase_set_IMBD()
     uc = list(user_cases.items())[0][1]
 
     conn = sqlite3.Connection('example.db')

@@ -158,17 +158,17 @@ class UserCase:
         c.close()
         conn.commit()
 
-    #TODO test this shit out
+    # TODO test this shit out
     def db_log_user(self, conn: sqlite3.Connection):
         insert_user = "INSERT INTO %s VALUES(?, ?, ?)" % DBT_MUSR
         if self.maep_svr is None or self.maep_socal is None:
             self.calculate_maep()
         user_class = CLASS_NOCLASS
 
-        #We calculate the class to be expected in training for this user
+        # We calculate the class to be expected in training for this user
         if self.maep_svr < self.maep_socal:
             user_class = CLASS_SVR
-        elif self.maep_svr > self.maep_socal: #If the maeps are equal, the class is NOCLASS
+        elif self.maep_svr > self.maep_socal:  # If the maeps are equal, the class is NOCLASS
             user_class = CLASS_SOCAL
 
         c = conn.cursor()
@@ -176,6 +176,10 @@ class UserCase:
             c.execute(insert_user, (self.user_id, self.dataset, user_class))
         except sqlite3.Error:
             return False
+
+        uninserted_revs = self.__db_log_reviews(conn)
+        print(uninserted_revs)
+
         return True
 
     # TODO Probar
@@ -183,12 +187,12 @@ class UserCase:
         insert_reviews = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_MREVS
         uninserted_list = []
         c = conn.cursor()
-        for key, value in self.reviews:
+        for key, value in self.reviews.items():
             try:
                 c.execute(insert_reviews, (
-                    value[TAG_RID], self.dataset, self.user_id, value[TAG_PID], value[TAG_REVIEW],
-                    float(value[TAG_SOCAL]),
-                    float(value[TAG_SVR])))
+                    value.rev_id, self.dataset, self.user_id, value.product_id, value.review,
+                    float(value.irr_socal),
+                    float(value.irr_svr)))
             except sqlite3.Error:
                 uninserted_list.append(key)
         return uninserted_list
@@ -198,7 +202,7 @@ class UserCase:
         insert_attributtes = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
         uninserted_list = []
         c = conn.cursor()
-        for key, value in self.attributes:
+        for key, value in self.attributes.items():
             try:
                 c.execute(insert_attributtes, (self.txt_instance, key, -1, value, datetime.now(), None, 1))
             except sqlite3.Error:
