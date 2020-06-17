@@ -5,7 +5,7 @@ from constants import DBT_MATTR
 
 published_attributes = []
 
-#TODO probar
+
 def attribute_generator_publisher():
     # Here we add a line for every attribute generator we want available (whether we use it or not)
     published_attributes.append(VoidAttGen.gen_wc())
@@ -14,10 +14,12 @@ def attribute_generator_publisher():
     published_attributes.append(VoidAttGen.gen_sentences())
 
     conn = sqlite3.Connection('example.db')
-    __log_attributes(conn)
+    print(__log_attributes(conn))
+
     conn.close()
 
-#TODO probar
+
+# TODO probar
 def get_active_attr_generators():
     active_generators = []
     select_attr = "SELECT aid FROM %s WHERE active = ?" % DBT_MATTR
@@ -44,6 +46,7 @@ def get_active_attr_generators():
     conn.close()
     return active_generators
 
+
 # TODO Probar
 def __log_attributes(conn: sqlite3.Connection):
     insert_attr = "INSERT INTO %s VALUES(?, ?, ?, ?)" % DBT_MATTR
@@ -57,6 +60,7 @@ def __log_attributes(conn: sqlite3.Connection):
             uninserter_attr.append(attr)
     c.close()
     conn.commit()
+    return uninserter_attr
 
 
 def generate_attributes(list_user_cases, list_attgenerators, sample_size=-1):

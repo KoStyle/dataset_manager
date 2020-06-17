@@ -15,6 +15,12 @@ class VoidAttGen:
         self.type = gen_type
         self.func = f
 
+    def __str__(self):
+        return self.get_attr_id()
+
+    def __repr__(self):
+        return self.get_attr_id()
+
     @staticmethod
     def gen_wc():
         return VoidAttGen('WORD_COUNT', 'INT', get_wc)
