@@ -1,11 +1,13 @@
 from random import random
 from random import sample
 import sqlite3
-import datetime
+from datetime import datetime
+
+from att_generators.attr_funcs import AttrValue
 from base_case import BaseCase
 from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
     CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
-    CLASS_SVR
+    CLASS_SVR, TYPE_LST
 
 
 class UserCase:
@@ -19,7 +21,7 @@ class UserCase:
         self.maep_socal = None
         self.maep_svr = None
         self.attributes = {}
-        self.txt_instance = -1
+        self.txt_instance_id = -1
 
     def get_id(self):
         return self.user_id
@@ -29,29 +31,26 @@ class UserCase:
 
     def get_text(self, amount=-1):
         '''
-        This method concatenates a random number of text reviews into a single string attribute of the case. It stores the
-        last result and only recalculates if the amount required is different.
+        This method concatenates a random number of text reviews into a single string attribute of the case.
         :param amount: Amount of reviews to concat
         :return:
         '''
         if amount < 0:
             amount = len(list(self.reviews))
 
-        # We check if the user_case already has a text concatenation with the given amount
-        if not self.rev_text_concat or self.rev_text_amount != amount:
-            self.rev_text_concat = ""
-            self.rev_text_amount = amount
-            self.txt_instance = -1  # we mark it as -1 because the to-be-created instance won't be in the db (probably)
+        self.rev_text_concat = ""
+        self.rev_text_amount = amount
+        self.txt_instance_id = -1  # we mark it as -1 because the to-be-created instance won't be in the db (probably)
 
-            if amount == len(list(self.reviews)):
-                sample_revs = self.reviews
-            else:
-                sample_revs = sample(list(self.reviews), amount)
+        if amount == len(list(self.reviews)):
+            sample_revs = self.reviews
+        else:
+            sample_revs = sample(list(self.reviews), amount)
 
-            for rev_key in sample_revs:
-                rev_text = self.reviews[rev_key].review
-                self.rev_text_concat = self.rev_text_concat + " " + rev_text
-            self.rev_text_concat = self.rev_text_concat.strip()
+        for rev_key in sample_revs:
+            rev_text = self.reviews[rev_key].review
+            self.rev_text_concat = self.rev_text_concat + " " + rev_text
+        self.rev_text_concat = self.rev_text_concat.strip()
 
         return self.rev_text_concat
 
@@ -115,19 +114,19 @@ class UserCase:
             self.reviews[review.rev_id] = review
 
     ##CAREFUL, attr_value can be a list in case of BERT or PANDORA
-    def add_attribute(self, attr_id, attr_value):
-        self.attributes[attr_id] = attr_value
+    def add_attribute(self, attr_id, attr_object):
+        self.attributes[attr_id] = attr_object
 
     def db_log_instance(self, conn: sqlite3.Connection):
         select_max_tid = "SELECT MAX(%s) FROM %s" % (CONCATS_TID, DBT_CONCATS)
         select_max_amount = "SELECT MAX(%s) FROM %s" % (CONCATS_NUMRE, DBT_CONCATS)
         insert_header = "INSERT INTO %s VALUES (?, ?, ?, ?)" % DBT_CONCATS
-        insert_attr = "INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
         select_attrs = "SELECT %s FROM %s WHERE %s=?" % (ATTGEN_AID, DBT_ATTGEN, ATTGEN_TID)
         flag_insert = False
         c = conn.cursor()
 
-        if self.txt_instance == -1:
+        # We create the header if it didn't exist
+        if self.txt_instance_id == -1:
             c.execute(select_max_tid)
             max_tid = c.fetchone()[0]
             c.execute(select_max_amount)
@@ -138,23 +137,19 @@ class UserCase:
             # be the same)
             if not (self.rev_text_amount == len(self.reviews) and self.rev_text_amount == max_amount):
                 if max_tid:
-                    self.txt_instance = max_tid + 1
+                    self.txt_instance_id = max_tid + 1
                     flag_insert = True
                 elif not max_tid:
-                    self.txt_instance = 1
+                    self.txt_instance_id = 0
                     flag_insert = True
 
                 if flag_insert:
                     c.execute(insert_header,
-                              (self.txt_instance, self.user_id, self.rev_text_amount, self.rev_text_concat))
-                    c.execute(select_attrs, (self.txt_instance,))
-                    logged_attr = c.fetchall()
+                              (self.txt_instance_id, self.user_id, self.rev_text_amount, self.rev_text_concat))
 
-                    # TODO esto puede fallar por logged_attr ser tupla en lugar de lista, ojo
-                    for attkey, attdata in self.attributes.items():
-                        if attkey not in logged_attr:
-                            c.execute(insert_attr,
-                                      (self.txt_instance, attkey, attdata[1], datetime.datetime.now(), None, 1))
+        # TODO test
+        # We log the attributes once we are sure we have a header (only the ones not logged, based in the Attribute ID
+        self.__db_log_attr(conn)
         c.close()
         conn.commit()
 
@@ -174,11 +169,12 @@ class UserCase:
         try:
             c.execute(insert_user, (self.user_id, self.dataset, user_class))
         except sqlite3.Error:
+            c.close()
             return False
 
         uninserted_revs = self.__db_log_reviews(conn)
         print(uninserted_revs)
-
+        c.close()
         return True
 
     def __db_log_reviews(self, conn: sqlite3.Connection):
@@ -198,13 +194,27 @@ class UserCase:
     # TODO test
     def __db_log_attr(self, conn: sqlite3.Connection):
         insert_attributtes = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
+        delete_failed_complex_attr = "DELETE FROM %s WHERE %s = ? AND %s = ?" % (DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID)
         uninserted_list = []
         c = conn.cursor()
         for key, value in self.attributes.items():
-            try:
-                c.execute(insert_attributtes, (self.txt_instance, key, -1, value, datetime.now(), None, 1))
-            except sqlite3.Error:
-                uninserted_list.append(key)
+            value: AttrValue
+            if value.type == TYPE_LST:
+                try:
+                    for i in range(len(
+                            value.value)):  # I know is a pain to read, it means when the attrValue object contains a list
+                        c.execute(insert_attributtes,
+                                  (self.txt_instance_id, key, i, value.value[i], datetime.now(), None, 1))
+                except sqlite3.Error:
+                    uninserted_list.append(key)
+                    c.execute(delete_failed_complex_attr, (self.txt_instance_id,
+                                                           key))  # In case only one component in the list fails to insert but the rest did (we wipe off the entire attr)
+            else:
+                try:
+                    c.execute(insert_attributtes, (self.txt_instance_id, key, -1, value.value, datetime.now(), None, 1))
+                except sqlite3.Error as e:
+                    uninserted_list.append(key)
+        c.close()
         return uninserted_list
 
     def db_load_user(self, conn: sqlite3.Connection):
@@ -229,7 +239,7 @@ class UserCase:
         data = c.fetchone()
         if data is not None:
             if self.user_id == data[1]:
-                self.txt_instance = data[0]
+                self.txt_instance_id = data[0]
                 self.rev_text_concat = data[3]
                 self.rev_text_amount = data[2]
             else:

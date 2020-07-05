@@ -1,6 +1,12 @@
 import nltk
 
-from constants import TAG_PRON, TAG_VERB, TAG_ADJ, TAG_NOUN, TAGSET, TAG_DET
+from constants import TAG_PRON, TAG_VERB, TAG_ADJ, TAG_NOUN, TAGSET, TAG_DET, TYPE_NUM
+
+
+class AttrValue:
+    def __init__(self, attrtype, attrvalue):
+        self.type = attrtype
+        self.value = attrvalue
 
 
 def get_wc(text):
@@ -10,10 +16,10 @@ def get_wc(text):
         # We clean up the text from characters so the word count gets only proper stuff.
         for c in '.,:;-_?!\n':
             text = text.replace(c, ' ')
-        return len(nltk.word_tokenize(text))
+        return AttrValue(TYPE_NUM, len(nltk.word_tokenize(text)))
 
 
-def get_tag_count(text, tag):
+def __get_tag_count(text, tag):
     tags = nltk.pos_tag(nltk.word_tokenize(text), tagset=TAGSET)
 
     count = 0
@@ -21,24 +27,24 @@ def get_tag_count(text, tag):
         if pair[1] == tag:
             count += 1
 
-    return count
+    return AttrValue(TYPE_NUM, count)
 
 
 def get_noun_count(text):
-    return get_tag_count(text, TAG_NOUN)
+    return __get_tag_count(text, TAG_NOUN)
 
 
 def get_adjective_count(text):
-    return get_tag_count(text, TAG_ADJ)
+    return __get_tag_count(text, TAG_ADJ)
 
 
 def get_determinant_count(text):
-    return get_tag_count(text, TAG_DET)
+    return __get_tag_count(text, TAG_DET)
 
 
 def get_verb_count(text):
-    return get_tag_count(text, TAG_VERB)
+    return __get_tag_count(text, TAG_VERB)
 
 
 def get_pronoun_count(text):
-    return get_tag_count(text, TAG_PRON)
+    return __get_tag_count(text, TAG_PRON)

@@ -21,6 +21,11 @@ TAG_SOCAL = "socal"
 TAG_REVIEW = "review"
 TAG_CLASS = "class"
 
+#Attr types
+TYPE_STR = "STRING"
+TYPE_LST = "LIST"
+TYPE_NUM = "NUM"
+
 # DB CONSTANTS
 DBT_CONCATS = "CONCATS"
 DBT_ATTGEN = "ATTGEN"

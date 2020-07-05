@@ -8,7 +8,6 @@ from MDT import load_usercase_set_IMBD
 
 class TestUserCase(TestCase):
     def test_db_log_user(self):
-        load_usercase_set_IMBD()
         user_cases = load_usercase_set_IMBD()
         uc: UserCase = list(user_cases.items())[0][1]
 

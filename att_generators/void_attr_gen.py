@@ -55,7 +55,7 @@ class VoidAttGen:
                 if sent != '':
                     sentence_count += 1
 
-            return sentence_count
+            return AttrValue(TYPE_NUM, sentence_count)
 
         return VoidAttGen('SENT_COUNT', 'INT', get_sentence_count)
 

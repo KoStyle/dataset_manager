@@ -40,7 +40,7 @@ def read_partial_set(file_name, mode=RESSET):
     return entries
 
 
-def assing_class(entries):
+def assign_class(entries):
     '''
     This function splits a set of examples in accordance to their performance with diferent training methods
     (labeled TAG_SVR and TAG_SOCAL)

@@ -3,9 +3,9 @@ import timeit
 import sqlite3
 
 import user_case
-from attribute_management import generate_attributes
+from attribute_management import generate_attributes, attribute_generator_publisher, get_active_attr_generators
 from constants import REVSET
-from io_management import read_partial_set, assing_class, join_result_sets, join_partial_set_entries, \
+from io_management import read_partial_set, assign_class, join_result_sets, join_partial_set_entries, \
     create_database_schema
 
 from util import chronometer
@@ -15,9 +15,6 @@ from att_generators.void_attr_gen import VoidAttGen
 
 RUTA_BASE = 'ficheros_entrada/'
 
-
-# TODO: Crear un fichero de set nuevo de user cases, una sola linea de texto, usuario, maeps o clase directamente, y review texto (el texto a parte quiza)
-# TODO: Base de datos sql para guardar las combinaciones de usertexts, leer de ahi.
 
 def setup_nltk():
     try:
@@ -46,20 +43,24 @@ def load_usercase_set_IMBD():
     entries_socal_app = read_partial_set(RUTA_BASE + 'result-IMDB-SOCAL.txt')
     entries_svr_app = read_partial_set(RUTA_BASE + 'result-IMDB-SVR62.txt')
     entries_comments = read_partial_set(RUTA_BASE + 'revs_imdb.txt', REVSET)
-    complete_results = assing_class(join_result_sets(entries_socal_app, entries_svr_app))
+    complete_results = assign_class(join_result_sets(entries_socal_app, entries_svr_app))
     return join_partial_set_entries(complete_results, entries_comments, "IMBD")
 
 
 if __name__ == "__main__":
     create_database_schema()
+    setup_nltk()
 
     user_cases = load_usercase_set_IMBD()
     uc = list(user_cases.items())[0][1]
 
     conn = sqlite3.Connection('example.db')
 
+    attribute_generator_publisher(conn)
+    list_active_generators = get_active_attr_generators(conn)
+
     for x in range(20):
-        uc.get_text(x)
+        generate_attributes([uc], list_active_generators, 10)
         uc.db_log_instance(conn)
 
     instances = uc.db_list_instances(conn)
