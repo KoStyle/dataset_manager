@@ -21,7 +21,7 @@ TAG_SOCAL = "socal"
 TAG_REVIEW = "review"
 TAG_CLASS = "class"
 
-#Attr types
+# Attr types
 TYPE_STR = "STRING"
 TYPE_LST = "LIST"
 TYPE_NUM = "INT"
@@ -29,9 +29,9 @@ TYPE_NUM = "INT"
 # DB CONSTANTS
 DBT_CONCATS = "CONCATS"
 DBT_ATTGEN = "ATTGEN"
-DBT_MATTR = "MATTR"     #master attributes
-DBT_MUSR = "MUSR"       #master user
-DBT_MREVS = "MREVS"     #Master Reviews
+DBT_MATTR = "MATTR"  # master attributes
+DBT_MUSR = "MUSR"  # master user
+DBT_MREVS = "MREVS"  # Master Reviews
 
 MUSR_UID = "uid"
 MUSR_CLASS = "class"
@@ -54,7 +54,7 @@ MATTR_ACTI = "active"
 
 ATTGEN_TID = "tid"
 ATTGEN_AID = "aid"
-ATTGEN_ASEQ = "aseq"  #Sequential of the attribute (for multivalue attributes or vectors (wink wink BERT)
+ATTGEN_ASEQ = "aseq"  # Sequential of the attribute (for multivalue attributes or vectors (wink wink BERT)
 ATTGEN_VAL = "value"
 ATTGEN_CDAT = "cdate"
 ATTGEN_UDAT = "udate"
@@ -65,5 +65,7 @@ CONCATS_UID = "uid"
 CONCATS_NUMRE = "numrevs"
 CONCATS_REVST = "revstr"
 
-
 RUTA_BASE = 'ficheros_entrada/'
+
+DATASET_IMDB = "IMDB"
+DATASET_APP = "APP"
