@@ -16,7 +16,7 @@ def get_wc(text):
         # We clean up the text from characters so the word count gets only proper stuff.
         for c in '.,:;-_?!\n':
             text = text.replace(c, ' ')
-        return AttrValue(TYPE_NUM, len(nltk.word_tokenize(text)))
+        return len(nltk.word_tokenize(text))
 
 
 def __get_tag_count(text, tag):
@@ -27,7 +27,7 @@ def __get_tag_count(text, tag):
         if pair[1] == tag:
             count += 1
 
-    return AttrValue(TYPE_NUM, count)
+    return count
 
 
 def get_noun_count(text):

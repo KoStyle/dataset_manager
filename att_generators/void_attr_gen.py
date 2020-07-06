@@ -55,7 +55,7 @@ class VoidAttGen:
                 if sent != '':
                     sentence_count += 1
 
-            return AttrValue(TYPE_NUM, sentence_count)
+            return sentence_count
 
         return VoidAttGen('SENT_COUNT', TYPE_NUM, get_sentence_count)
 
@@ -66,4 +66,4 @@ class VoidAttGen:
         return self.id
 
     def get_attr(self, text):
-        return self.func(text)
+        return AttrValue(self.type, self.func(text))
