@@ -269,21 +269,23 @@ class UserCase:
                     for coordinate in result:
                         vector.append(coordinate[1])
                     av = AttrValue(TYPE_LST, vector)
+        c.close()
         return
 
     def db_load_instance(self, conn: sqlite3.Connection, tid: int):
-        # TODO also load the attributes calling the method
         select_header = "SELECT %s, %s, %s, %s FROM %s WHERE %s=?" % (
             CONCATS_TID, CONCATS_UID, CONCATS_NUMRE, CONCATS_REVST, DBT_CONCATS, CONCATS_TID)
 
         c = conn.cursor()
         c.execute(select_header, (tid,))
         data = c.fetchone()
+        c.close()
         if data is not None:
             if self.user_id == data[1]:
                 self.txt_instance_id = data[0]
                 self.rev_text_concat = data[3]
                 self.rev_text_amount = data[2]
+                self.__db_load_attr(conn)
             else:
                 print("Mismatched user_id!")
         else:
