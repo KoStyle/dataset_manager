@@ -39,9 +39,6 @@ def generate_genlist():
     return list_generators
 
 
-
-
-
 if __name__ == "__main__":
     create_database_schema()
     setup_nltk()

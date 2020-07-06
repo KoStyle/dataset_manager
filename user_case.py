@@ -176,7 +176,6 @@ class UserCase:
         uninserted_revs = self.__db_log_reviews(conn)
         if len(uninserted_revs) > 0:
             raise Exception("Some reviews were not inserted")
-        print(uninserted_revs)
         c.close()
         return True
 
