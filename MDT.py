@@ -33,12 +33,6 @@ def setup_nltk():
         nltk.download('universal_tagset')
 
 
-def generate_genlist():
-    list_generators = [VoidAttGen.gen_verb(), VoidAttGen.gen_det(), VoidAttGen.gen_pron(), VoidAttGen.gen_sentences(),
-                       VoidAttGen.gen_wc(), VoidAttGen.gen_noun(), VoidAttGen.gen_adj()]
-    return list_generators
-
-
 if __name__ == "__main__":
     create_database_schema()
     setup_nltk()

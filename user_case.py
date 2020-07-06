@@ -7,7 +7,7 @@ from att_generators.attr_funcs import AttrValue
 from base_case import BaseCase
 from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
     CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
-    CLASS_SVR, TYPE_LST, MREVS_UID, MREVS_SVR, MREVS_SOCAL, MREVS_REVIEW, MREVS_PID, MREVS_RID
+    CLASS_SVR, TYPE_LST, MREVS_UID, MREVS_SVR, MREVS_SOCAL, MREVS_REVIEW, MREVS_PID, MREVS_RID, DBT_MATTR, TYPE_NUM
 
 
 class UserCase:
@@ -118,11 +118,16 @@ class UserCase:
     def add_attribute(self, attr_id, attr_object):
         self.attributes[attr_id] = attr_object
 
+    def exists_attribute(self, attr_id):
+        if attr_id in self.attributes:
+            return True
+        else:
+            return False
+
     def db_log_instance(self, conn: sqlite3.Connection):
         select_max_tid = "SELECT MAX(%s) FROM %s" % (CONCATS_TID, DBT_CONCATS)
         select_max_amount = "SELECT MAX(%s) FROM %s" % (CONCATS_NUMRE, DBT_CONCATS)
         insert_header = "INSERT INTO %s VALUES (?, ?, ?, ?)" % DBT_CONCATS
-        select_attrs = "SELECT %s FROM %s WHERE %s=?" % (ATTGEN_AID, DBT_ATTGEN, ATTGEN_TID)
         flag_insert = False
         c = conn.cursor()
 
@@ -177,6 +182,7 @@ class UserCase:
         if len(uninserted_revs) > 0:
             raise Exception("Some reviews were not inserted")
         c.close()
+        conn.commit()
         return True
 
     def __db_log_reviews(self, conn: sqlite3.Connection):
@@ -193,7 +199,6 @@ class UserCase:
                 uninserted_list.append(key)
         return uninserted_list
 
-    # TODO test
     def __db_log_attr(self, conn: sqlite3.Connection):
         insert_attributtes = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % DBT_ATTGEN
         delete_failed_complex_attr = "DELETE FROM %s WHERE %s = ? AND %s = ?" % (DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID)
@@ -239,7 +244,31 @@ class UserCase:
         return True
 
     def __db_load_attr(self, conn: sqlite3.Connection):
-        # TODO Implement
+        # TODO Test this out
+
+        select_attribute = "select A.aseq, A.value from %s A inner join %s C on A.tid = C.tid WHERE C.uid = ? and A.tid = ? and A.aid = ? order by A.aseq ASC" % (
+            DBT_ATTGEN, DBT_CONCATS)
+        select_active_attr = "SELECT aid, type FROM %s WHERE active = ?" % DBT_MATTR
+        c = conn.cursor()
+        c.execute(select_active_attr, (True,))
+        active_attr = c.fetchall()
+
+        for attribute in active_attr:
+            # We recover the active attributes one by one if they exists
+            att_id = attribute[0]
+            c.execute(select_attribute, (self.user_id, self.txt_instance_id, att_id))
+            if attribute[1] == TYPE_NUM:
+                result = c.fetchone()
+                if result:
+                    av = AttrValue(TYPE_NUM, result[1])
+                    self.attributes[att_id] = av
+            elif attribute[1] == TYPE_LST:
+                result = c.fetchall()
+                if result:
+                    vector = []
+                    for coordinate in result:
+                        vector.append(coordinate[1])
+                    av = AttrValue(TYPE_LST, vector)
         return
 
     def db_load_instance(self, conn: sqlite3.Connection, tid: int):

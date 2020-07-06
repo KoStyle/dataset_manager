@@ -23,27 +23,27 @@ class VoidAttGen:
 
     @staticmethod
     def gen_wc():
-        return VoidAttGen('WORD_COUNT', 'INT', get_wc)
+        return VoidAttGen('WORD_COUNT', TYPE_NUM, get_wc)
 
     @staticmethod
     def gen_noun():
-        return VoidAttGen('NOUN_COUNT', 'INT', get_noun_count)
+        return VoidAttGen('NOUN_COUNT', TYPE_NUM, get_noun_count)
 
     @staticmethod
     def gen_verb():
-        return VoidAttGen('VERB_COUNT', 'INT', get_verb_count)
+        return VoidAttGen('VERB_COUNT', TYPE_NUM, get_verb_count)
 
     @staticmethod
     def gen_adj():
-        return VoidAttGen('ADJ_COUNT', 'INT', get_adjective_count)
+        return VoidAttGen('ADJ_COUNT', TYPE_NUM, get_adjective_count)
 
     @staticmethod
     def gen_pron():
-        return VoidAttGen('PRON_COUNT', 'INT', get_pronoun_count)
+        return VoidAttGen('PRON_COUNT', TYPE_NUM, get_pronoun_count)
 
     @staticmethod
     def gen_det():
-        return VoidAttGen('DET_COUNT', 'INT', get_determinant_count)
+        return VoidAttGen('DET_COUNT', TYPE_NUM, get_determinant_count)
 
     @staticmethod
     def gen_sentences():
@@ -57,7 +57,7 @@ class VoidAttGen:
 
             return AttrValue(TYPE_NUM, sentence_count)
 
-        return VoidAttGen('SENT_COUNT', 'INT', get_sentence_count)
+        return VoidAttGen('SENT_COUNT', TYPE_NUM, get_sentence_count)
 
     def get_attr_type(self):
         return self.type

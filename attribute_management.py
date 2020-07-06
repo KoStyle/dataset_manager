@@ -2,6 +2,7 @@ import sqlite3
 
 from att_generators.void_attr_gen import VoidAttGen
 from constants import DBT_MATTR
+from user_case import UserCase
 
 published_attributes = []
 
@@ -17,7 +18,7 @@ def attribute_generator_publisher(optionalConn: sqlite3.Connection = None):
         conn = optionalConn
     else:
         conn = sqlite3.Connection('example.db')
-    print(__log_attributes(conn))
+    print(__log_attribute_headers(conn))
 
     conn.commit()
 
@@ -57,7 +58,7 @@ def get_active_attr_generators(optionalConn: sqlite3.Connection = None):
     return active_generators
 
 
-def __log_attributes(conn: sqlite3.Connection):
+def __log_attribute_headers(conn: sqlite3.Connection):
     insert_attr = "INSERT INTO %s VALUES(?, ?, ?, ?)" % DBT_MATTR
     uninserter_attr = []
     c = conn.cursor()
@@ -85,7 +86,9 @@ def generate_attributes(list_user_cases, list_attgenerators, sample_size=-1):
         raise Exception("An empty parameter received")
 
     for user_case in list_user_cases:
+        user_case: UserCase
         for generator in list_attgenerators:
-            user_case.add_attribute(generator.get_attr_id(), generator.get_attr(user_case.get_text(sample_size)))
+            if not user_case.exists_attribute(generator.get_attr_id):
+                user_case.add_attribute(generator.get_attr_id(), generator.get_attr(user_case.get_text(sample_size)))
 
     return
