@@ -1,16 +1,45 @@
 from base_case import BaseCase
 from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
-    TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW
+    TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, REVSET, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
+    MUSR_MAEP_SOCAL
 from user_case import UserCase
 import sqlite3
 
 
-def read_partial_set(file_name, mode=RESSET):
+def load_dataset_files_IMBD():
+    entries_socal_app = __read_partial_set(RUTA_BASE + 'result-IMDB-SOCAL.txt')
+    entries_svr_app = __read_partial_set(RUTA_BASE + 'result-IMDB-SVR62.txt')
+    entries_comments = __read_partial_set(RUTA_BASE + 'revs_imdb.txt')
+    complete_results = __assign_class(__join_result_sets(entries_socal_app, entries_svr_app))
+    return join_partial_set_entries(complete_results, entries_comments, "IMBD")
+
+
+def load_dataset_from_db(conn: sqlite3.Connection, dataset):
+    select_user_headers = "SELECT %s, %s, %s, %s FROM %s WHERE %s = ?" % (
+        MUSR_UID, MUSR_CLASS, MUSR_MAEP_SVR, MUSR_MAEP_SOCAL, DBT_MUSR, MUSR_DS)
+    c = conn.cursor()
+    try:
+        c.execute(select_user_headers, (dataset,))
+        results = c.fetchall()
+        c.close()
+        user_cases = []
+        for query_result in results:
+            uc = UserCase(query_result[0])
+            uc.dataset = dataset
+            uc.irr_class = query_result[1]
+            uc.db_load_reviews(conn)
+            user_cases.append(uc)
+        return user_cases
+    except sqlite3.OperationalError as e:
+        print(e)
+        return None
+
+
+def __read_partial_set(file_name):
     '''
     This function reads a .csv file with the field descriptions in the first line and returns an array
     of dictionaries with the entries in the file
     :param file_name: The path to the csv file
-    :param mode: The reading mode, by defaut "RESSET" (for RESult SET). The other option would be "REVSET" (REView SET)
     :return: array of dictionaries with all the entries in the file
     '''
     entries = {}
@@ -40,7 +69,7 @@ def read_partial_set(file_name, mode=RESSET):
     return entries
 
 
-def assign_class(entries):
+def __assign_class(entries):
     '''
     This function splits a set of examples in accordance to their performance with diferent training methods
     (labeled TAG_SVR and TAG_SOCAL)
@@ -59,7 +88,7 @@ def assign_class(entries):
     return entries
 
 
-def get_entry(entry_id, entry_dict, remove=False):
+def __get_entry(entry_id, entry_dict, remove=False):
     '''
     This function searches for an entry in a given set that matches a given id
     :param entry_id: The id to search (int)
@@ -81,14 +110,14 @@ def get_entry(entry_id, entry_dict, remove=False):
         return None
 
 
-def check_method_set(result_set, tag):
+def __check_set_algorithm(result_set, tag):
     if tag in list(result_set.items())[0][1]:
         return True
     else:
         return False
 
 
-def join_result_sets(set1, set2):
+def __join_result_sets(set1, set2):
     '''
     This method takes to sets with only one estimation and combines the in a set of cases with both estimations.
     This method is faster if both sets are sorted by TAG_RID
@@ -97,16 +126,16 @@ def join_result_sets(set1, set2):
     :return: combined set
     '''
 
-    if check_method_set(set1, TAG_SVR):
+    if __check_set_algorithm(set1, TAG_SVR):
         set_svr = set1
-    elif check_method_set(set2, TAG_SVR):
+    elif __check_set_algorithm(set2, TAG_SVR):
         set_svr = set2
     else:
         raise Exception("No SVR set in join")
 
-    if check_method_set(set1, TAG_SOCAL):
+    if __check_set_algorithm(set1, TAG_SOCAL):
         set_socal = set1
-    elif check_method_set(set2, TAG_SOCAL):
+    elif __check_set_algorithm(set2, TAG_SOCAL):
         set_socal = set2
     else:
         raise Exception("No SOCAL set in join")
@@ -115,7 +144,7 @@ def join_result_sets(set1, set2):
 
     for sockey in set_socal:
         socentry = set_socal[sockey]
-        svr_partner = get_entry(sockey, set_svr)
+        svr_partner = __get_entry(sockey, set_svr)
         if svr_partner:
             socentry[TAG_SVR] = svr_partner[
                 TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
@@ -181,6 +210,8 @@ def create_database_schema():
                       "uid text , "
                       "dataset text,"
                       "class text, "
+                      "maep_svr real,"
+                      "maep_socal real,"
                       "PRIMARY KEY (uid,dataset))")
         except sqlite3.OperationalError as e:
             print(e)

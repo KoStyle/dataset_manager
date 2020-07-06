@@ -36,6 +36,8 @@ DBT_MREVS = "MREVS"     #Master Reviews
 MUSR_UID = "uid"
 MUSR_CLASS = "class"
 MUSR_DS = "dataset"
+MUSR_MAEP_SVR = "maep_svr"
+MUSR_MAEP_SOCAL = "maep_socal"
 
 MREVS_RID = "rid"
 MREVS_DS = "dataset"
@@ -62,3 +64,6 @@ CONCATS_TID = "tid"
 CONCATS_UID = "uid"
 CONCATS_NUMRE = "numrevs"
 CONCATS_REVST = "revstr"
+
+
+RUTA_BASE = 'ficheros_entrada/'

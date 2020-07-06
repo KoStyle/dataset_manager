@@ -5,8 +5,8 @@ import sqlite3
 import user_case
 from attribute_management import generate_attributes, attribute_generator_publisher, get_active_attr_generators
 from constants import REVSET
-from io_management import read_partial_set, assign_class, join_result_sets, join_partial_set_entries, \
-    create_database_schema
+from io_management import __read_partial_set, __assign_class, __join_result_sets, join_partial_set_entries, \
+    create_database_schema, load_dataset_files_IMBD
 
 from util import chronometer
 from util import print_chrono
@@ -39,19 +39,14 @@ def generate_genlist():
     return list_generators
 
 
-def load_usercase_set_IMBD():
-    entries_socal_app = read_partial_set(RUTA_BASE + 'result-IMDB-SOCAL.txt')
-    entries_svr_app = read_partial_set(RUTA_BASE + 'result-IMDB-SVR62.txt')
-    entries_comments = read_partial_set(RUTA_BASE + 'revs_imdb.txt', REVSET)
-    complete_results = assign_class(join_result_sets(entries_socal_app, entries_svr_app))
-    return join_partial_set_entries(complete_results, entries_comments, "IMBD")
+
 
 
 if __name__ == "__main__":
     create_database_schema()
     setup_nltk()
 
-    user_cases = load_usercase_set_IMBD()
+    user_cases = load_dataset_files_IMBD()
     uc = list(user_cases.items())[0][1]
 
     conn = sqlite3.Connection('example.db')

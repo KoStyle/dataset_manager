@@ -7,7 +7,7 @@ from att_generators.attr_funcs import AttrValue
 from base_case import BaseCase
 from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
     CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
-    CLASS_SVR, TYPE_LST
+    CLASS_SVR, TYPE_LST, MREVS_UID, MREVS_SVR, MREVS_SOCAL, MREVS_REVIEW, MREVS_PID, MREVS_RID
 
 
 class UserCase:
@@ -20,6 +20,7 @@ class UserCase:
         self.rev_text_amount = 0
         self.maep_socal = None
         self.maep_svr = None
+        self.irr_class = None
         self.attributes = {}
         self.txt_instance_id = -1
 
@@ -147,14 +148,13 @@ class UserCase:
                     c.execute(insert_header,
                               (self.txt_instance_id, self.user_id, self.rev_text_amount, self.rev_text_concat))
 
-        # TODO test
         # We log the attributes once we are sure we have a header (only the ones not logged, based in the Attribute ID
         self.__db_log_attr(conn)
         c.close()
         conn.commit()
 
     def db_log_user(self, conn: sqlite3.Connection):
-        insert_user = "INSERT INTO %s VALUES(?, ?, ?)" % DBT_MUSR
+        insert_user = "INSERT INTO %s VALUES(?, ?, ?, ?, ?)" % DBT_MUSR
         if self.maep_svr is None or self.maep_socal is None:
             self.calculate_maep()
         user_class = CLASS_NOCLASS
@@ -165,14 +165,17 @@ class UserCase:
         elif self.maep_svr > self.maep_socal:  # If the maeps are equal, the class is NOCLASS
             user_class = CLASS_SOCAL
 
+        self.irr_class = user_class
         c = conn.cursor()
         try:
-            c.execute(insert_user, (self.user_id, self.dataset, user_class))
+            c.execute(insert_user, (self.user_id, self.dataset, user_class, self.maep_svr, self.maep_socal))
         except sqlite3.Error:
             c.close()
             return False
 
         uninserted_revs = self.__db_log_reviews(conn)
+        if len(uninserted_revs) > 0:
+            raise Exception("Some reviews were not inserted")
         print(uninserted_revs)
         c.close()
         return True
@@ -217,13 +220,24 @@ class UserCase:
         c.close()
         return uninserted_list
 
-    def db_load_user(self, conn: sqlite3.Connection):
-        # TODO Implement
-        return
+    def db_load_reviews(self, conn: sqlite3.Connection):
+        select_reviews = "SELECT %s, %s, %s, %s, %s FROM %s WHERE %s = ?" % (
+            MREVS_RID, MREVS_PID, MREVS_REVIEW, MREVS_SOCAL, MREVS_SVR, DBT_MREVS, MREVS_UID)
+        c = conn.cursor()
 
-    def __db_load_reviews(self, conn: sqlite3.Connection):
-        # TODO Implement
-        return
+        c.execute(select_reviews, (self.user_id,))
+        results = c.fetchall()
+        c.close()
+        for query_result in results:
+            review = BaseCase()
+            review.rev_id = query_result[0]
+            review.product_id = query_result[1]
+            review.review = query_result[2]
+            review.irr_socal = query_result[3]
+            review.irr_svr = query_result[4]
+            self.reviews[review.rev_id] = review
+
+        return True
 
     def __db_load_attr(self, conn: sqlite3.Connection):
         # TODO Implement
