@@ -1,17 +1,9 @@
-import nltk
-import timeit
 import sqlite3
 
-import user_case
-from attribute_management import generate_attributes, attribute_generator_publisher, get_active_attr_generators
-from constants import REVSET, DATASET_IMDB
-from io_management import __read_partial_set, __assign_class, __join_result_sets, join_partial_set_entries, \
-    create_database_schema, load_dataset
+import nltk
 
-from util import chronometer
-from util import print_chrono
-
-from att_generators.void_attr_gen import VoidAttGen
+from constants import DATASET_IMDB
+from io_management import create_database_schema, load_dataset
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -33,25 +25,28 @@ def setup_nltk():
         nltk.download('universal_tagset')
 
 
+def generate_user_instances(conn: sqlite3.Connection, instance_redundancy=1, instance_size=1):
+    user_cases = load_dataset(conn, DATASET_IMDB)
+    j = 0
+    max_j = len(user_cases)
+    print("Generating user instances")
+    print("Instances per user: %d" % instance_redundancy)
+    print("User reviews per instance: %d" % instance_size)
+    for key in user_cases:
+
+        for i in range(instance_redundancy):
+            user_cases[key].gen_instance(instance_size)
+            user_cases[key].db_log_instance(conn)
+        j += 1
+        print("Generated instances of user %s. %d/%d of users completed" % (key, j, max_j))
+
+
 if __name__ == "__main__":
     create_database_schema()
     setup_nltk()
-
-    conn = sqlite3.Connection('example.db')
-    user_cases = load_dataset(conn, DATASET_IMDB)
-    uc = list(user_cases.items())[0][1]
-
-    attribute_generator_publisher(conn)
-    list_active_generators = get_active_attr_generators(conn)
-
-    for x in range(20):
-        generate_attributes([uc], list_active_generators, 10)
-        uc.db_log_instance(conn)
-
-    instances = uc.db_list_instances(conn)
-    uc.db_load_instance(conn, 6)
-    print(instances)
-
+    conn = sqlite3.connect("example.db")
+    generate_user_instances(conn, instance_redundancy=3, instance_size=3)
+    conn.close()
     # print(len(user_cases))
 
     # @chronometer

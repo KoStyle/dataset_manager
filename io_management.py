@@ -1,9 +1,10 @@
+import sqlite3
+
 from base_case import BaseCase
-from constants import CLASS_NOCLASS, CLASS_SOCAL, CLASS_SVR, RESSET, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
-    TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, REVSET, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
+from constants import CLASS_SOCAL, CLASS_SVR, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
+    TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
     MUSR_MAEP_SOCAL, DATASET_IMDB, DATASET_APP
 from user_case import UserCase
-import sqlite3
 
 
 def __load_dataset_files_IMBD():
@@ -28,15 +29,32 @@ def load_dataset_from_files(dataset):
     elif dataset == DATASET_IMDB:
         return __load_dataset_files_IMBD()
 
+
 def load_dataset(conn: sqlite3.Connection, dataset):
     user_cases = load_dataset_from_db(conn, dataset)
     if not user_cases:
-        user_cases= load_dataset_from_files(dataset)
+        user_cases = load_dataset_from_files(dataset)
         for key in user_cases:
             uc: UserCase = user_cases[key]
             uc.db_log_user(conn)
         conn.commit()
     return user_cases
+
+
+def load_all_db_instances(conn: sqlite3.Connection, dataset):
+    select_instances = "SELECT C.tid, C.uid, C.numrevs, C.revstr, U.dataset FROM CONCATS C INNER JOIN MUSR U ON C.uid=U.uid WHERE U.dataset=?"
+    c = conn.cursor()
+    c.execute(select_instances, (dataset,))
+    results = c.fetchall()
+    user_instances = []
+    for qr in results:
+        ui = UserCase(qr[1])
+        ui.txt_instance_id = qr[0]
+        ui.rev_text_amount = qr[2]
+        ui.rev_text_concat = qr[3]
+        ui.dataset = dataset
+        user_instances.append(ui)
+    return user_instances
 
 def load_dataset_from_db(conn: sqlite3.Connection, dataset):
     select_user_headers = "SELECT %s, %s, %s, %s FROM %s WHERE %s = ?" % (
@@ -52,7 +70,7 @@ def load_dataset_from_db(conn: sqlite3.Connection, dataset):
             uc.dataset = dataset
             uc.irr_class = query_result[1]
             uc.db_load_reviews(conn)
-            user_cases[uc.user_id]=uc
+            user_cases[uc.user_id] = uc
         if user_cases:
             return user_cases
         else:

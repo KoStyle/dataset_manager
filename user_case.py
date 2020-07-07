@@ -30,20 +30,22 @@ class UserCase:
     def get_rev(self, rev_id):
         return self.reviews[rev_id]
 
-    def get_text(self, amount=-1):
+    def gen_instance(self, amount=-1):
         '''
         This method concatenates a random number of text reviews into a single string attribute of the case.
         :param amount: Amount of reviews to concat
         :return:
         '''
-        if amount < 0:
-            amount = len(list(self.reviews))
+
+        max_revs = len(self.reviews)
+        if amount < 0 or amount > max_revs:
+            amount = max_revs
 
         self.rev_text_concat = ""
         self.rev_text_amount = amount
         self.txt_instance_id = -1  # we mark it as -1 because the to-be-created instance won't be in the db (probably)
 
-        if amount == len(list(self.reviews)):
+        if amount == max_revs:
             sample_revs = self.reviews
         else:
             sample_revs = sample(list(self.reviews), amount)
@@ -53,6 +55,7 @@ class UserCase:
             self.rev_text_concat = self.rev_text_concat + " " + rev_text
         self.rev_text_concat = self.rev_text_concat.strip()
 
+    def get_instance_text(self):
         return self.rev_text_concat
 
     def get_maep_socal(self):
