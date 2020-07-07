@@ -2,8 +2,9 @@ import sqlite3
 
 import nltk
 
+from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from constants import DATASET_IMDB
-from io_management import create_database_schema, load_dataset
+from io_management import create_database_schema, load_dataset, load_all_db_instances
 from util import print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
@@ -26,10 +27,11 @@ def setup_nltk():
         nltk.download('universal_tagset')
 
 
-def generate_user_instances(conn: sqlite3.Connection, instance_redundancy=1, instance_size=1):
-    user_cases = load_dataset(conn, DATASET_IMDB)
+def generate_user_instances(conn: sqlite3.Connection, dataset, instance_redundancy=1, instance_size=1):
+    user_cases = load_dataset(conn, dataset)
     j = 0
     max_j = len(user_cases)
+    attribute_generator_publisher(conn) #we create the available attrgenerators in the db
     print("Generating user instances")
     print("Instances per user: %d" % instance_redundancy)
     print("User reviews per instance: %d" % instance_size)
@@ -42,12 +44,26 @@ def generate_user_instances(conn: sqlite3.Connection, instance_redundancy=1, ins
         print("Generated instances of user %s. %d/%d of users completed" % (key, j, max_j))
 
 
+def generate_intances_attributes(conn : sqlite3.Connection, dataset):
+    attribute_generator_publisher(conn)  #just in case, but we will not get any active one though
+    list_active_generators = get_active_attr_generators(conn)
+
+    user_instances = load_all_db_instances(conn, dataset)
+
+    #TODO test speeds with different commit strategies (a lot of small ones or a big chunkus)
+    generate_attributes(user_instances, list_active_generators)
+    for instance in user_instances:
+        instance.db_log_instance(conn)
+
+
+
 if __name__ == "__main__":
     create_database_schema()
     setup_nltk()
     conn = sqlite3.connect("example.db")
-    generate_user_instances(conn, instance_redundancy=3, instance_size=3)
-    print_chrono()
+    #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
+    #print_chrono()
+    generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
     # print(len(user_cases))
 

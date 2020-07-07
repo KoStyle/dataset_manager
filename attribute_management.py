@@ -84,10 +84,17 @@ def generate_attributes(list_user_instances, list_attgenerators):
     if not list_user_instances or not list_attgenerators:
         raise Exception("An empty parameter received")
 
+    print("Calculating attributes:")
+    print(list_attgenerators)
+    print("")
+    i = 1
+    max_i = len(list_user_instances)
     for user_case in list_user_instances:
         user_case: UserCase
+        print("Generating attributes for instance %d/%d" % (i, max_i))
         for generator in list_attgenerators:
-            if not user_case.exists_attribute(generator.get_attr_id):
+            if not user_case.exists_attribute(generator.get_attr_id()):
                 user_case.add_attribute(generator.get_attr_id(), generator.get_attr(user_case.get_instance_text()))
+        i += 1
 
     return

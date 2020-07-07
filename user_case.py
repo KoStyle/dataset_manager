@@ -246,7 +246,7 @@ class UserCase:
 
         return True
 
-    def __db_load_attr(self, conn: sqlite3.Connection):
+    def db_load_attr(self, conn: sqlite3.Connection):
 
         select_attribute = "select A.aseq, A.value from %s A inner join %s C on A.tid = C.tid WHERE C.uid = ? and A.tid = ? and A.aid = ? order by A.aseq ASC" % (
             DBT_ATTGEN, DBT_CONCATS)
@@ -287,7 +287,7 @@ class UserCase:
                 self.txt_instance_id = data[0]
                 self.rev_text_concat = data[3]
                 self.rev_text_amount = data[2]
-                self.__db_load_attr(conn)
+                self.db_load_attr(conn)
             else:
                 print("Mismatched user_id!")
         else:

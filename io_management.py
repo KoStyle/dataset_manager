@@ -54,6 +54,7 @@ def load_all_db_instances(conn: sqlite3.Connection, dataset):
         ui.rev_text_amount = qr[2]
         ui.rev_text_concat = qr[3]
         ui.dataset = dataset
+        ui.db_load_attr(conn)
         user_instances.append(ui)
     return user_instances
 
