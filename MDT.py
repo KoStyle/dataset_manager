@@ -4,6 +4,7 @@ import nltk
 
 from constants import DATASET_IMDB
 from io_management import create_database_schema, load_dataset
+from util import print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -46,6 +47,7 @@ if __name__ == "__main__":
     setup_nltk()
     conn = sqlite3.connect("example.db")
     generate_user_instances(conn, instance_redundancy=3, instance_size=3)
+    print_chrono()
     conn.close()
     # print(len(user_cases))
 

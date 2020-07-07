@@ -5,6 +5,7 @@ from constants import CLASS_SOCAL, CLASS_SVR, SEPARATOR, TAG_RID, TAG_SVR, TAG_S
     TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
     MUSR_MAEP_SOCAL, DATASET_IMDB, DATASET_APP
 from user_case import UserCase
+from util import chronometer2
 
 
 def __load_dataset_files_IMBD():
@@ -56,6 +57,7 @@ def load_all_db_instances(conn: sqlite3.Connection, dataset):
         user_instances.append(ui)
     return user_instances
 
+@chronometer2
 def load_dataset_from_db(conn: sqlite3.Connection, dataset):
     select_user_headers = "SELECT %s, %s, %s, %s FROM %s WHERE %s = ?" % (
         MUSR_UID, MUSR_CLASS, MUSR_MAEP_SVR, MUSR_MAEP_SOCAL, DBT_MUSR, MUSR_DS)
@@ -194,7 +196,7 @@ def __join_result_sets(set1, set2):
             socentry[TAG_SVR] = svr_partner[
                 TAG_SVR]  # We add the svr data to the socal entry, this function is destructive
         else:
-            # TODO volcar esto a un log que se sobreescriba
+            # TODO Tabla log para escribir estas cosas quizas
             print("id {} no encontrado en SVR, asisgnando 99".format(sockey))
             del set_socal[sockey]
     return set_socal
