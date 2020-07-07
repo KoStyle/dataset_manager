@@ -27,7 +27,7 @@ def load_dataset_from_files(dataset):
         return __load_dataset_files_APP()
     elif dataset == DATASET_IMDB:
         return __load_dataset_files_IMBD()
-#TODO test
+
 def load_dataset(conn: sqlite3.Connection, dataset):
     user_cases = load_dataset_from_db(conn, dataset)
     if not user_cases:
@@ -35,6 +35,7 @@ def load_dataset(conn: sqlite3.Connection, dataset):
         for key in user_cases:
             uc: UserCase = user_cases[key]
             uc.db_log_user(conn)
+        conn.commit()
     return user_cases
 
 def load_dataset_from_db(conn: sqlite3.Connection, dataset):

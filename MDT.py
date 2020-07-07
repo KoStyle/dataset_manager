@@ -4,9 +4,9 @@ import sqlite3
 
 import user_case
 from attribute_management import generate_attributes, attribute_generator_publisher, get_active_attr_generators
-from constants import REVSET
+from constants import REVSET, DATASET_IMDB
 from io_management import __read_partial_set, __assign_class, __join_result_sets, join_partial_set_entries, \
-    create_database_schema, load_dataset_files_IMBD
+    create_database_schema, load_dataset
 
 from util import chronometer
 from util import print_chrono
@@ -37,10 +37,9 @@ if __name__ == "__main__":
     create_database_schema()
     setup_nltk()
 
-    user_cases = load_dataset_files_IMBD()
-    uc = list(user_cases.items())[0][1]
-
     conn = sqlite3.Connection('example.db')
+    user_cases = load_dataset(conn, DATASET_IMDB)
+    uc = list(user_cases.items())[0][1]
 
     attribute_generator_publisher(conn)
     list_active_generators = get_active_attr_generators(conn)

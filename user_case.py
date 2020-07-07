@@ -142,10 +142,10 @@ class UserCase:
             # we already have one of those (the calculation of attributes would be redundant, because the results would
             # be the same)
             if not (self.rev_text_amount == len(self.reviews) and self.rev_text_amount == max_amount):
-                if max_tid:
+                if max_tid is not None:
                     self.txt_instance_id = max_tid + 1
                     flag_insert = True
-                elif not max_tid:
+                elif max_tid is None:
                     self.txt_instance_id = 0
                     flag_insert = True
 
@@ -244,7 +244,6 @@ class UserCase:
         return True
 
     def __db_load_attr(self, conn: sqlite3.Connection):
-        # TODO Test this out
 
         select_attribute = "select A.aseq, A.value from %s A inner join %s C on A.tid = C.tid WHERE C.uid = ? and A.tid = ? and A.aid = ? order by A.aseq ASC" % (
             DBT_ATTGEN, DBT_CONCATS)
