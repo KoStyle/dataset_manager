@@ -7,22 +7,23 @@ from user_case import UserCase
 published_attributes = []
 
 
-def attribute_generator_publisher(optionalConn: sqlite3.Connection = None):
+def attribute_generator_publisher(optional_conn: sqlite3.Connection = None):
     # Here we add a line for every attribute generator we want available (whether we use it or not)
     published_attributes.append(VoidAttGen.gen_wc())
     published_attributes.append(VoidAttGen.gen_adj())
     published_attributes.append(VoidAttGen.gen_noun())
     published_attributes.append(VoidAttGen.gen_sentences())
+    published_attributes.append(VoidAttGen.gen_test_vector())
 
-    if optionalConn:
-        conn = optionalConn
+    if optional_conn:
+        conn = optional_conn
     else:
         conn = sqlite3.Connection('example.db')
     print(__log_attribute_headers(conn))
 
     conn.commit()
 
-    if not optionalConn:
+    if not optional_conn:
         conn.close()
 
 
@@ -65,7 +66,7 @@ def __log_attribute_headers(conn: sqlite3.Connection):
     for attr in published_attributes:
         attr: VoidAttGen
         try:
-            c.execute(insert_attr, (attr.get_attr_id(), "", False, attr.get_attr_type()))
+            c.execute(insert_attr, (attr.get_attr_id(), "", True, attr.get_attr_type()))
         except sqlite3.Error:
             uninserter_attr.append(attr)
     c.close()

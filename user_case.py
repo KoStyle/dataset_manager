@@ -211,11 +211,10 @@ class UserCase:
             value: AttrValue
             if value.type == TYPE_LST:
                 try:
-                    for i in range(len(
-                            value.value)):  # I know is a pain to read, it means when the attrValue object contains a list
+                    for i in range(len(value.value)):  # I know is a pain to read, it means when the attrValue object contains a list
                         c.execute(insert_attributtes,
                                   (self.txt_instance_id, key, i, value.value[i], datetime.now(), None, 1))
-                except sqlite3.Error:
+                except sqlite3.Error as e:
                     uninserted_list.append(key)
                     c.execute(delete_failed_complex_attr, (self.txt_instance_id,
                                                            key))  # In case only one component in the list fails to insert but the rest did (we wipe off the entire attr)
@@ -271,6 +270,7 @@ class UserCase:
                     for coordinate in result:
                         vector.append(coordinate[1])
                     av = AttrValue(TYPE_LST, vector)
+                    self.attributes[att_id] = av
         c.close()
         return
 

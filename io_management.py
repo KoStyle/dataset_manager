@@ -306,7 +306,7 @@ def create_database_schema():
                       "cdate date, "
                       "udate date, "
                       "version int, "
-                      "PRIMARY KEY(tid,aid), "
+                      "PRIMARY KEY(tid,aid,aseq), "
                       "FOREIGN KEY (tid) REFERENCES CONCATS (tid), "
                       "FOREIGN KEY (aid) REFERENCES MATTR (aid))")
         except sqlite3.OperationalError as e:

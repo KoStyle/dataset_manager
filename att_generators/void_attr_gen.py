@@ -1,8 +1,5 @@
-import string
-import nltk
 from att_generators.attr_funcs import *
-
-from constants import TAGSET, TAG_NOUN, TAG_ADJ, TAG_DET, TAG_VERB, TAG_PRON
+from constants import TYPE_LST
 
 
 class VoidAttGen:
@@ -20,6 +17,15 @@ class VoidAttGen:
 
     def __repr__(self):
         return self.get_attr_id()
+
+    def get_attr_type(self):
+        return self.type
+
+    def get_attr_id(self):
+        return self.id
+
+    def get_attr(self, text):
+        return AttrValue(self.type, self.func(text))
 
     @staticmethod
     def gen_wc():
@@ -59,11 +65,10 @@ class VoidAttGen:
 
         return VoidAttGen('SENT_COUNT', TYPE_NUM, get_sentence_count)
 
-    def get_attr_type(self):
-        return self.type
+    @staticmethod
+    def gen_test_vector():
+        def get_test_vector_attr(text):
+            test = [1, 2, 3, 420, 69, 666, 2666618]
+            return test
 
-    def get_attr_id(self):
-        return self.id
-
-    def get_attr(self, text):
-        return AttrValue(self.type, self.func(text))
+        return VoidAttGen('TEST_VECT', TYPE_LST, get_test_vector_attr)
