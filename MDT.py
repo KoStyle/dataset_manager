@@ -1,6 +1,7 @@
 import sqlite3
 
 import nltk
+from numpy import numarray
 from sentence_transformers import SentenceTransformer
 
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
@@ -56,27 +57,31 @@ def generate_intances_attributes(conn : sqlite3.Connection, dataset):
     for instance in user_instances:
         instance.db_log_instance(conn)
 
+model = SentenceTransformer('bert-base-nli-mean-tokens')
+
 @chrono
 def test_bert_sentence():
-    model = SentenceTransformer('bert-base-nli-mean-tokens')
+    global model
     sentences = ["This is a test sentence, to see if I'll drown in a river bank, or if I'll work in a bank. Also I want to see what does this return"]
     sentence_embeddings = model.encode(sentences)
+    vector = sentence_embeddings[0].tolist()
     print("Ya")
+    return vector
 
 if __name__ == "__main__":
 
-    test_bert_sentence()
-    get_chrono(test_bert_sentence)
+    # test_bert_sentence()
+    # get_chrono(test_bert_sentence)
 
 
-    # create_database_schema()
-    # setup_nltk()
-    # conn = sqlite3.connect("example.db")
-    # #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
-    # #print_chrono()
-    # generate_intances_attributes(conn, DATASET_IMDB)
-    # conn.close()
-    # # print(len(user_cases))
+    create_database_schema()
+    setup_nltk()
+    conn = sqlite3.connect("example.db")
+    #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
+    #print_chrono()
+    generate_intances_attributes(conn, DATASET_IMDB)
+    conn.close()
+    # print(len(user_cases))
 
     # @chronometer
     # def test():
