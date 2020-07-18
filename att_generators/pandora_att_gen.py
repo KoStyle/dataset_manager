@@ -18,12 +18,12 @@ from att_generators.void_attr_gen import VoidAttGen
 
 
 class PandoraSetUp():
-    def __init__(self, model, fs, tfidfer, data, data_feats):
+    def __init__(self, model, fs, tfidfer, data=None, data_feats=None):
         self.model = model
         self.fs = fs
         self.tfidfer = tfidfer
         self.data = data
-        self.data_feats
+        self.data_feats = data_feats
 
 
 class PandoraAttGen(VoidAttGen):
@@ -76,12 +76,11 @@ class PandoraAttGen(VoidAttGen):
         txt = []
         labels = ["introverted", "intuitive", "thinking", "perceiving"]
         for label_name in labels:
-            PandoraAttGen.datadic[label_name] = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path,
-                                                                                               "author_profiles.csv"),
-                                                                        label_name, args.tasktype, args.folds, 0, args)
-            PandoraAttGen.dfdic[
-                label_name], PandoraAttGen.feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(
-                PandoraAttGen.datadic[label_name], args.data_path, args)
+            data = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path, "author_profiles.csv"), label_name, args.tasktype, args.folds, 0, args)
+            df, feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(data, args.data_path, args)
+            tupla = PandoraAttGen.generate_setup(data, df, args.tasktype, feat_names, args, extra_feats, extra_feat_names, label_name, feat_size=15784, hp=8, fold_in=4)
+
+            PandoraAttGen.datadic[label_name] = PandoraSetUp(tupla[0], tupla[1], tupla[2])
         return None
 
     @staticmethod
@@ -185,7 +184,8 @@ class PandoraAttGen(VoidAttGen):
             print(text_feats_matrix.shape)
         return (text_feats_matrix, text_feats_names, all_feats_matrix, all_feats_names)
 
-    def generate_setup(data, data_feats, label_type, run_id_prefix, feat_names, cur_repeat, args, extra_feats,
+    @staticmethod
+    def generate_setup(data, data_feats, label_type, feat_names, args, extra_feats,
                        extra_feat_names, label_name, feat_size=None, hp=None, fold_in=None):
         # important return stuf
         xval_res = None
@@ -227,8 +227,6 @@ class PandoraAttGen(VoidAttGen):
 
         if hp:
             hyperparams = [(hp,)]
-
-        print("Starting model run " + run_id_prefix)
 
         valid_indexes = data['label'].notnull()
 
@@ -359,4 +357,3 @@ class PandoraAttGen(VoidAttGen):
         else:
             raise Exception("Unkown label type -- " + str(label_type))
         return (model)
-
