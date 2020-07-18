@@ -1,7 +1,10 @@
 import sqlite3
+import string
+from tokenize import String
 
 import nltk
 from numpy import numarray
+from scipy.sparse import csr_matrix
 from sentence_transformers import SentenceTransformer
 
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
@@ -77,9 +80,42 @@ if __name__ == "__main__":
     PandoraAttGen.init_values_and_stuff_mtbi()
     print(PandoraAttGen.feat_names)
 
-    # create_database_schema()
-    # setup_nltk()
-    # conn = sqlite3.connect("example.db")
+    create_database_schema()
+    setup_nltk()
+    conn = sqlite3.connect("example.db")
+    user_instances = load_all_db_instances(conn, DATASET_IMDB)
+    ui= user_instances[0].rev_text_concat.lower()
+    words = ui.split(" ")
+    ui_dict = {}
+    for word in words:
+        if word in ui_dict:
+            ui_dict[word] += 1
+        else:
+            ui_dict[word] = 1
+    print(ui_dict)
+    vect = []
+    for word in PandoraAttGen.feat_names:
+        if word in ui_dict:
+            vect.append(ui_dict[word])
+        else:
+            vect.append(0)
+    print(vect)
+    rows = []
+    cols = []
+    mxdata = []
+    for i in range(len(vect)):
+        if vect[i] != 0:
+            rows.append(0)
+            cols.append(i)
+            mxdata.append(vect[i])
+
+    print(rows)
+    print(cols)
+    print(mxdata)
+
+    enter_the_matrix = csr_matrix((mxdata, (rows, cols)), shape=(1, len(PandoraAttGen.feat_names)))
+    print(enter_the_matrix.shape)
+
     # #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
     # #print_chrono()
     # generate_intances_attributes(conn, DATASET_IMDB)
