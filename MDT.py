@@ -8,6 +8,7 @@ from attribute_management import get_active_attr_generators, attribute_generator
 from constants import DATASET_IMDB
 from io_management import create_database_schema, load_dataset, load_all_db_instances
 from util import print_chrono, chrono, get_chrono
+from att_generators.pandora_att_gen import PandoraAttGen
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -73,14 +74,16 @@ if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
 
+    PandoraAttGen.init_values_and_stuff_mtbi()
+    print(PandoraAttGen.feat_names)
 
-    create_database_schema()
-    setup_nltk()
-    conn = sqlite3.connect("example.db")
-    #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
-    #print_chrono()
-    generate_intances_attributes(conn, DATASET_IMDB)
-    conn.close()
+    # create_database_schema()
+    # setup_nltk()
+    # conn = sqlite3.connect("example.db")
+    # #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
+    # #print_chrono()
+    # generate_intances_attributes(conn, DATASET_IMDB)
+    # conn.close()
     # print(len(user_cases))
 
     # @chronometer
