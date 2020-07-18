@@ -2,19 +2,35 @@ import argparse
 import math
 import os
 import pickle
+
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
+from scipy.sparse import csr_matrix, hstack as sparse_hstack
+from sklearn.dummy import DummyClassifier, DummyRegressor
+from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_selection import SelectKBest, chi2, f_regression
+from sklearn.linear_model import LogisticRegression, Lasso, Ridge
+from sklearn.preprocessing import MinMaxScaler
 
 from att_generators.void_attr_gen import VoidAttGen
-from scipy.sparse import csr_matrix, hstack as sparse_hstack
+
+
+class PandoraSetUp():
+    def __init__(self, model, fs, tfidfer, data, data_feats):
+        self.model = model
+        self.fs = fs
+        self.tfidfer = tfidfer
+        self.data = data
+        self.data_feats
 
 
 class PandoraAttGen(VoidAttGen):
-    datadic={}
-    dfdic={}
+    datadic = {}
+    dfdic = {}
     feat_names = None
-
-
+    label_setups = {}
 
     @staticmethod
     def parse_args(args):
@@ -53,18 +69,24 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def init_values_and_stuff_mtbi():
-        argstr = ['-data_path', "C:\\Users\\konom\\Downloads\\pandora_baseline\\data", '-label', 'allmbti', '-tasktype', 'classification', '-folds', 'mbti', '-feats', '1gram', '-model', 'lr', '-variant', 'LR-N']
+        argstr = ['-data_path', "C:\\Users\\konom\\Downloads\\pandora_baseline\\data", '-label', 'allmbti', '-tasktype',
+                  'classification', '-folds', 'mbti', '-feats', '1gram', '-model', 'lr', '-variant', 'LR-N']
         args = PandoraAttGen.parse_args(argstr)
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
         labels = ["introverted", "intuitive", "thinking", "perceiving"]
         for label_name in labels:
-            PandoraAttGen.datadic[label_name] = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path, "author_profiles.csv"), label_name, args.tasktype, args.folds, 0, args)
-            PandoraAttGen.dfdic[label_name], PandoraAttGen.feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(PandoraAttGen.datadic[label_name], args.data_path, args)
+            PandoraAttGen.datadic[label_name] = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path,
+                                                                                               "author_profiles.csv"),
+                                                                        label_name, args.tasktype, args.folds, 0, args)
+            PandoraAttGen.dfdic[
+                label_name], PandoraAttGen.feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(
+                PandoraAttGen.datadic[label_name], args.data_path, args)
         return None
 
     @staticmethod
-    def load_data(unames, texts, labels_path, label_name, label_type, fold_grp, repeat, args):  # percentiles or scores THAT PARAMETER IS DEPRECATED DOES NOTHING NOW
+    def load_data(unames, texts, labels_path, label_name, label_type, fold_grp, repeat,
+                  args):  # percentiles or scores THAT PARAMETER IS DEPRECATED DOES NOTHING NOW
         print("Loading metadata ...")
         # load labels
         ldf = pd.read_csv(labels_path)
@@ -108,7 +130,6 @@ class PandoraAttGen(VoidAttGen):
             raise Exception("Fold file not found.")
         ret_df = pd.DataFrame(list(zip(unames, folds, labels)), columns=['author', 'fold', 'label'])
         return (ret_df)
-
 
     @staticmethod
     def precompute_or_load_feats(data, feats_id_prefix, args):
@@ -163,3 +184,179 @@ class PandoraAttGen(VoidAttGen):
             assert text_feats_matrix.shape[1] == len(text_feats_names)
             print(text_feats_matrix.shape)
         return (text_feats_matrix, text_feats_names, all_feats_matrix, all_feats_names)
+
+    def generate_setup(data, data_feats, label_type, run_id_prefix, feat_names, cur_repeat, args, extra_feats,
+                       extra_feat_names, label_name, feat_size=None, hp=None, fold_in=None):
+        # important return stuf
+        xval_res = None
+        tfidf = None
+        fs = None
+
+        cw = "balanced"  # "balanced" or None
+        # reg_types = ["l1","l2"]
+        reg_types = [
+            "l2"]  # preliminary experiments show that l2 + relatively low number of features in feat sel perform the best, but this might not always be the case
+
+        n_base_feats = data_feats.shape[1] if data_feats is not None else 0
+        n_extra_feats = extra_feats.shape[1] if extra_feats is not None else 0
+        total_n_feats = n_base_feats + n_extra_feats
+
+        max_features = 20000
+        feat_sel_Ncandidates = [int(percentage * total_n_feats) for percentage in [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]]
+        if total_n_feats < max_features:
+            feat_sel_Ncandidates += ["all"]  # if there are not a lot of feats also try a variant with all feats
+        else:  # on the other hand, dont try more than 20k feats (more than that didn't appear to yield significant benefits in prelim. experiments)
+            feat_sel_Ncandidates = [x for x in feat_sel_Ncandidates if x <= max_features] + [max_features]
+
+        if feat_size:
+            feat_sel_Ncandidates = [feat_size]
+
+        if args.model == "lr":
+            hyperparams = [tuple([2 ** i]) for i in range(-10, 5)]  # regularisation strength for the regression models
+        elif args.model == "et":
+            n_estimators = [100, 200, 300, 400, 500]
+            mf = ["auto", 800] if total_n_feats >= 800 else ["auto"]
+            bootstrap = [True]
+            oob = [True, False]
+            hyperparams = list(np.itertools.product(*[n_estimators, mf, bootstrap, oob]))
+            feat_sel_Ncandidates = ["all"] if total_n_feats < max_features else [max_features]
+        elif args.model == "dummy":
+            hyperparams = [0]
+        else:
+            raise Exception("Unknown model type: " + str(args.model))
+
+        if hp:
+            hyperparams = [(hp,)]
+
+        print("Starting model run " + run_id_prefix)
+
+        valid_indexes = data['label'].notnull()
+
+        # filter out rows with nan vals for extra feats
+        if extra_feats is not None:
+            ll = np.isnan(extra_feats.todense()).any(axis=1)
+            for ind in range(len(ll)):
+                if ll[ind]:  # there is a nan in that row
+                    valid_indexes[ind] = False
+            print("Threw out " + str(np.sum(ll)))
+
+        valid_indexes_numbers = np.where(valid_indexes)[0]
+
+        filtered_data = data[valid_indexes]
+        if data_feats is not None:
+            filtered_data_feats = data_feats[valid_indexes_numbers, :]
+        if extra_feats is not None:
+            filtered_extra_feats = extra_feats[valid_indexes_numbers, :]
+
+        folds_to_run = [0, 1, 2, 3, 4] if args.specificfold == -1 else [args.specificfold]
+        if fold_in:
+            folds_to_run = [fold_in]
+
+        for fold in folds_to_run:
+            # print("Starting fold " + str(fold))
+
+            test_fold = fold
+            val_fold = (fold + 1) % 5
+
+            train_indexes = (filtered_data['fold'] != test_fold) & (filtered_data['fold'] != val_fold)
+            train_indexes_numbers = np.where(train_indexes)[0]
+
+            if data_feats is not None:
+                train_feats = filtered_data_feats[train_indexes_numbers]
+
+            if extra_feats is not None:
+                train_extra_feats = filtered_extra_feats[train_indexes_numbers]
+
+            train_labels = filtered_data[train_indexes]["label"]
+
+            # apply tfidf weighting
+            if data_feats is not None:
+                # print("Applying tfidf for this fold.")
+                tfidf = TfidfTransformer(sublinear_tf=True)
+                train_feats = tfidf.fit_transform(train_feats)
+
+            train_unames = list(filtered_data[train_indexes]["author"])
+
+            # some fixes on the extra feats part
+            if extra_feats is not None:
+                # scaler = StandardScaler(with_mean = False)
+                scaler = MinMaxScaler()
+
+                train_extra_feats = csr_matrix(scaler.fit_transform(train_extra_feats.todense()))
+
+            # combine word feats with all the other feats
+            if data_feats is not None and extra_feats is None:
+                combined_train_feats = train_feats
+            elif data_feats is None and extra_feats is not None:
+                combined_train_feats = csr_matrix(train_extra_feats)
+            elif data_feats is not None and extra_feats is not None:
+                for i in range(train_extra_feats.shape[0]):
+                    if np.isnan(train_extra_feats.todense()[i, :]).any():
+                        print("NAN FOUND FOR USER :" + train_unames[i])
+
+                combined_train_feats = csr_matrix(sparse_hstack([train_feats, csr_matrix(train_extra_feats)]))
+            else:
+                raise Exception("You must supply at least one type of features to use!")
+
+            # run the many loops for testing various versions of this and that
+            for feats_N in feat_sel_Ncandidates:
+                fs = SelectKBest(chi2, k=feats_N) if label_type == "classification" else SelectKBest(f_regression,
+                                                                                                     k=feats_N)
+                if (feats_N == 0):
+                    continue
+                train_feats_FS = csr_matrix(fs.fit_transform(combined_train_feats, train_labels))
+
+                def eval_hp(hype, r, l, c, ar, trf, trl):
+                    model = PandoraAttGen.spawn_model(hype, r, l, c, ar)
+                    model.fit(trf, trl)
+                    # print("Finished for " + str(hype))
+                    return model
+
+                for reg in reg_types:
+                    train_feats_FS.sort_indices()
+
+                    xval_res = Parallel(n_jobs=12)(
+                        delayed(eval_hp)(h, reg, label_type, cw, args, train_feats_FS, train_labels) for h in
+                        hyperparams)
+
+        print("*")
+        print("*")
+        print("*")
+        print("*")
+
+        return xval_res[0], fs, tfidf
+
+    def spawn_model(hyperparam_combo, reg, label_type, cw, args):
+        if label_type == "classification":
+            # model = LinearSVC(C = C, penalty = reg, max_iter = 5000, class_weight = cw)
+            if args.model == "lr":
+                model = LogisticRegression(C=hyperparam_combo[0], penalty=reg, class_weight=cw, max_iter=20000)
+            elif args.model == "et":
+                model = ExtraTreesClassifier(n_estimators=hyperparam_combo[0], max_features=hyperparam_combo[1],
+                                             bootstrap=hyperparam_combo[2], oob_score=hyperparam_combo[3], n_jobs=-1,
+                                             class_weight=cw)
+            elif args.model == "dummy":
+                # model = DummyClassifier(strategy = "most_frequent")
+                model = DummyClassifier(strategy="stratified")
+            else:
+                raise Exception("Unknown model type: " + str(args.model))
+            # model = DummyClassifier(strategy="most_frequent")
+        elif label_type == "regression":
+            if args.model == "lr":
+                if reg == "l1":
+                    model = Lasso(alpha=hyperparam_combo[0], max_iter=20000, solver='sag')
+                elif reg == "l2":
+                    model = Ridge(alpha=hyperparam_combo[0], max_iter=20000, solver='sag')
+                else:
+                    raise Exception("Unkown regularisation type -- " + str(reg))
+            elif args.model == "et":
+                model = ExtraTreesRegressor(n_estimators=hyperparam_combo[0], max_features=hyperparam_combo[1],
+                                            bootstrap=hyperparam_combo[2], oob_score=hyperparam_combo[3], n_jobs=-1)
+            elif args.model == "dummy":
+                model = DummyRegressor(strategy="mean")
+            else:
+                raise Exception("Unknown model type: " + str(args.model))
+        else:
+            raise Exception("Unkown label type -- " + str(label_type))
+        return (model)
+
