@@ -1,5 +1,6 @@
 import sqlite3
 
+from att_generators.pandora_att_gen import PandoraAttGen
 from att_generators.void_attr_gen import VoidAttGen
 from att_generators.bert_att_gen import BertAttGen
 from constants import DBT_MATTR
@@ -16,6 +17,9 @@ def attribute_generator_publisher(optional_conn: sqlite3.Connection = None):
     published_attributes.append(VoidAttGen.gen_sentences())
     published_attributes.append(VoidAttGen.gen_test_vector())
     published_attributes.append(BertAttGen.gen_bert_vector())
+    published_attributes.append(PandoraAttGen.gen_pandora_mbti())
+    published_attributes.append(PandoraAttGen.gen_pandora_age())
+    published_attributes.append(PandoraAttGen.gen_pandora_gender())
 
     if optional_conn:
         conn = optional_conn

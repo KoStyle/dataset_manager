@@ -1,12 +1,12 @@
-from random import random
+from datetime import datetime
 from random import sample
 import sqlite3
-from datetime import datetime
+from random import sample
 
 from att_generators.attr_funcs import AttrValue
 from base_case import BaseCase
-from constants import TAG_REVIEW, CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
-    CONCATS_NUMRE, CONCATS_REVST, TAG_RID, TAG_PID, TAG_SOCAL, TAG_SVR, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
+from constants import CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
+    CONCATS_NUMRE, CONCATS_REVST, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
     CLASS_SVR, TYPE_LST, MREVS_UID, MREVS_SVR, MREVS_SOCAL, MREVS_REVIEW, MREVS_PID, MREVS_RID, DBT_MATTR, TYPE_NUM
 
 
@@ -216,8 +216,11 @@ class UserCase:
                                   (self.txt_instance_id, key, i, value.value[i], datetime.now(), None, 1))
                 except sqlite3.Error as e:
                     uninserted_list.append(key)
-                    c.execute(delete_failed_complex_attr, (self.txt_instance_id,
-                                                           key))  # In case only one component in the list fails to insert but the rest did (we wipe off the entire attr)
+                    c.execute("select count(*) as len from ATTGEN where tid=? and aid=?", (self.txt_instance_id, key))
+                    attlen = c.fetchone()[0]
+                    if len(value.value) != attlen:
+                        c.execute(delete_failed_complex_attr,
+                                  (self.txt_instance_id, key))  # In case only one component in the list fails to insert but the rest did (we wipe off the entire attr)
             else:
                 try:
                     c.execute(insert_attributtes, (self.txt_instance_id, key, -1, value.value, datetime.now(), None, 1))

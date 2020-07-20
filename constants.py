@@ -69,3 +69,8 @@ RUTA_BASE = 'ficheros_entrada/'
 
 DATASET_IMDB = "IMDB"
 DATASET_APP = "APP"
+
+#PANDORA PICKLE
+PANDORA_DICT = "./data/models.pickle"
+PANDORA_MODELS = "MODELS"
+PANDORA_CORPUS = "CORPUS"

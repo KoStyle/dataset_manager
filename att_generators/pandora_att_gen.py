@@ -15,7 +15,7 @@ from sklearn.linear_model import LogisticRegression, Lasso, Ridge
 from sklearn.preprocessing import MinMaxScaler
 
 from att_generators.void_attr_gen import VoidAttGen
-from constants import TYPE_LST, TYPE_NUM
+from constants import TYPE_LST, TYPE_NUM, PANDORA_DICT, PANDORA_CORPUS, PANDORA_MODELS
 
 
 class PandoraSetUp():
@@ -36,7 +36,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def gen_pandora_mbti():
-        if not PandoraAttGen.feat_names:
+        if PandoraAttGen.feat_names is None:
             PandoraAttGen.init_values_and_models_and_stuff()
 
         def get_pandora_mbti(text):
@@ -50,7 +50,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def gen_pandora_age():
-        if not PandoraAttGen.feat_names:
+        if PandoraAttGen.feat_names is None:
             PandoraAttGen.init_values_and_models_and_stuff()
 
         def get_pandora_age(text):
@@ -64,7 +64,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def gen_pandora_gender():
-        if not PandoraAttGen.feat_names:
+        if PandoraAttGen.feat_names is None:
             PandoraAttGen.init_values_and_models_and_stuff()
 
         def get_pandora_gender(text):
@@ -157,13 +157,22 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def init_values_and_models_and_stuff():
-        PandoraAttGen.__init_mbti_models()
-        PandoraAttGen.__init_gender_model()
-        PandoraAttGen.__init_age_model()
+        if os.path.exists(PANDORA_DICT):
+            mega_dict = pickle.load(open(PANDORA_DICT, "rb"))
+            PandoraAttGen.model_dic = mega_dict[PANDORA_MODELS]
+            PandoraAttGen.feat_names = mega_dict[PANDORA_CORPUS]
+        else:
+            PandoraAttGen.__init_mbti_models()
+            PandoraAttGen.__init_gender_model()
+            PandoraAttGen.__init_age_model()
+            mega_dict = {PANDORA_MODELS: PandoraAttGen.model_dic, PANDORA_CORPUS: PandoraAttGen.feat_names}
+            if not os.path.exists(os.path.dirname(PANDORA_DICT)):
+                os.makedirs(os.path.dirname(PANDORA_DICT))
+            pickle.dump(mega_dict, open(PANDORA_DICT, "wb"))
 
     @staticmethod
     def __init_mbti_models():
-        argstr = '-data_path "C:\\Users\\konom\\Downloads\\pandora_baseline\\data" -label allmbti -tasktype classification -folds mbti -feats 1gram -model lr -variant LR-N'
+        argstr = '-data_path C:\\Users\\konom\\Downloads\\pandora_baseline\\data -label allmbti -tasktype classification -folds mbti -feats 1gram -model lr -variant LR-N'
         args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
@@ -177,7 +186,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def __init_age_model():
-        argstr = '-data_path "C:\\Users\\konom\\Downloads\\pandora_baseline\\data" -label age -tasktype regression -folds age -feats 1gram -model lr -variant LR-N'
+        argstr = '-data_path C:\\Users\\konom\\Downloads\\pandora_baseline\\data -label age -tasktype regression -folds age -feats 1gram -model lr -variant LR-N'
         args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
@@ -191,7 +200,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def __init_gender_model():
-        argstr = '-data_path "C:\\Users\\konom\\Downloads\\pandora_baseline\\data" -label is_female -tasktype classification -folds gender -feats 1gram -model lr -variant LR-N'
+        argstr = '-data_path C:\\Users\\konom\\Downloads\\pandora_baseline\\data -label is_female -tasktype classification -folds gender -feats 1gram -model lr -variant LR-N'
         args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
@@ -278,6 +287,8 @@ class PandoraAttGen(VoidAttGen):
                 text_feats_names = gram_feat_names
                 text_feats_matrix = gram_feats
                 grams_finished = True
+
+                PandoraAttGen.feat_names = gram_feat_names
 
             if feats_type == "mbtipred":
                 mbti_df = pd.read_csv(PATH_PREDICTION_FEATS)
@@ -444,6 +455,7 @@ class PandoraAttGen(VoidAttGen):
 
         return xval_res[0], fs, tfidf
 
+    @staticmethod
     def spawn_model(hyperparam_combo, reg, label_type, cw, args):
         if label_type == "classification":
             # model = LinearSVC(C = C, penalty = reg, max_iter = 5000, class_weight = cw)
