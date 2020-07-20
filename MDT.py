@@ -1,17 +1,12 @@
+import math
 import sqlite3
-import string
-from tokenize import String
 
 import nltk
-from numpy import numarray
-from scipy.sparse import csr_matrix
-from sentence_transformers import SentenceTransformer
 
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from constants import DATASET_IMDB
 from io_management import create_database_schema, load_dataset, load_all_db_instances
-from util import print_chrono, chrono, get_chrono
-from att_generators.pandora_att_gen import PandoraAttGen
+from util import chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -33,33 +28,35 @@ def setup_nltk():
         nltk.download('universal_tagset')
 
 
-def generate_user_instances(conn: sqlite3.Connection, dataset, instance_redundancy=1, instance_size=1):
+def generate_user_instances(conn: sqlite3.Connection, dataset, instance_redundancy=1, instance_perc=1):
     user_cases = load_dataset(conn, dataset)
     j = 0
     max_j = len(user_cases)
-    attribute_generator_publisher(conn) #we create the available attrgenerators in the db
+    attribute_generator_publisher(conn)  # we create the available attrgenerators in the db
     print("Generating user instances")
     print("Instances per user: %d" % instance_redundancy)
-    print("User reviews per instance: %d" % instance_size)
+    print("User reviews percentage per instance: %d" % instance_perc)
     for key in user_cases:
-
+        uc = user_cases[key]
         for i in range(instance_redundancy):
-            user_cases[key].gen_instance(instance_size)
-            user_cases[key].db_log_instance(conn)
+            num_instances = math.floor(instance_perc * len(uc.reviews))
+            uc.gen_instance(num_instances)
+            uc.db_log_instance(conn)
         j += 1
         print("Generated instances of user %s. %d/%d of users completed" % (key, j, max_j))
 
 
-def generate_intances_attributes(conn : sqlite3.Connection, dataset):
-    attribute_generator_publisher(conn)  #activated by default
+def generate_intances_attributes(conn: sqlite3.Connection, dataset):
+    attribute_generator_publisher(conn)  # activated by default
     list_active_generators = get_active_attr_generators(conn)
 
     user_instances = load_all_db_instances(conn, dataset)
 
-    #TODO test speeds with different commit strategies (a lot of small ones or a big chunkus)
+    # TODO test speeds with different commit strategies (a lot of small ones or a big chunkus)
     generate_attributes(user_instances, list_active_generators)
     for instance in user_instances:
         instance.db_log_instance(conn)
+
 
 @chrono
 def test_bert_sentence():
@@ -70,20 +67,22 @@ def test_bert_sentence():
     print("Ya")
     return vector
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
 
     create_database_schema()
-    # setup_nltk()
+    setup_nltk()
     conn = sqlite3.connect("example.db")
 
-    #generate_user_instances(conn, DATASET_IMDB, instance_redundancy=3, instance_size=3)
-    #print_chrono()
-    generate_intances_attributes(conn, DATASET_IMDB)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.25)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.5)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.75)
+    generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
+    # print_chrono()
+    # generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
-
 
     # @chronometer
     # def test():

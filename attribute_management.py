@@ -80,7 +80,7 @@ def __log_attribute_headers(conn: sqlite3.Connection):
     return uninserter_attr
 
 
-def generate_attributes(list_user_instances, list_attgenerators):
+def generate_attributes(list_user_instances, list_attgenerators, conn=None):
     '''
     This function generates as many attributes for the text in a user case based on the generator objects passed in
     the arguments. These objects must ducktype the method "get_Attr_id()" and "get_Attr( text)"
@@ -103,5 +103,7 @@ def generate_attributes(list_user_instances, list_attgenerators):
             if not user_case.exists_attribute(generator.get_attr_id()):
                 user_case.add_attribute(generator.get_attr_id(), generator.get_attr(user_case.get_instance_text()))
         i += 1
+        if conn:
+            user_case.db_log_instance(conn)
 
     return

@@ -129,7 +129,7 @@ class UserCase:
 
     def db_log_instance(self, conn: sqlite3.Connection):
         select_max_tid = "SELECT MAX(%s) FROM %s" % (CONCATS_TID, DBT_CONCATS)
-        select_max_amount = "SELECT MAX(%s) FROM %s" % (CONCATS_NUMRE, DBT_CONCATS)
+        select_max_amount = "SELECT MAX(%s) FROM %s where uid=?" % (CONCATS_NUMRE, DBT_CONCATS)
         insert_header = "INSERT INTO %s VALUES (?, ?, ?, ?)" % DBT_CONCATS
         flag_insert = False
         c = conn.cursor()
@@ -138,7 +138,7 @@ class UserCase:
         if self.txt_instance_id == -1:
             c.execute(select_max_tid)
             max_tid = c.fetchone()[0]
-            c.execute(select_max_amount)
+            c.execute(select_max_amount, (self.user_id,))
             max_amount = c.fetchone()[0]
 
             # We insert the instance with autoincremented TID unless it is a tid of all reviews and
