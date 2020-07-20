@@ -77,7 +77,7 @@ if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
 
-    PandoraAttGen.init_values_and_stuff_mtbi()
+    PandoraAttGen.init_values_and_models_and_stuff()
     print(PandoraAttGen.feat_names)
 
     create_database_schema()

@@ -15,22 +15,79 @@ from sklearn.linear_model import LogisticRegression, Lasso, Ridge
 from sklearn.preprocessing import MinMaxScaler
 
 from att_generators.void_attr_gen import VoidAttGen
+from constants import TYPE_LST, TYPE_NUM
 
 
 class PandoraSetUp():
     def __init__(self, model, fs, tfidfer, data=None, data_feats=None):
         self.model = model
-        self.fs = fs
-        self.tfidfer = tfidfer
+        self.fs: SelectKBest = fs
+        self.tfidfer: TfidfTransformer = tfidfer
         self.data = data
         self.data_feats = data_feats
 
 
+# TODO Maybe clean a reestructure this methods a bit maybe (perhaps)
+# TODO override __init__ to put the model initialization THEREGODDAMNIT
 class PandoraAttGen(VoidAttGen):
-    datadic = {}
-    dfdic = {}
+    model_dic = {}
     feat_names = None
     label_setups = {}
+
+    @staticmethod
+    def gen_pandora_mbti():
+        if not PandoraAttGen.feat_names:
+            PandoraAttGen.init_values_and_models_and_stuff()
+
+        def get_pandora_mbti(text):
+            labels = ["introverted", "intuitive", "thinking", "perceiving"]
+
+            # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+            att_lst = PandoraAttGen.__get_label_predictions(labels, text)
+            return att_lst
+
+        return PandoraAttGen('PANDORA_MBTI', TYPE_LST, get_pandora_mbti)
+
+    @staticmethod
+    def gen_pandora_age():
+        if not PandoraAttGen.feat_names:
+            PandoraAttGen.init_values_and_models_and_stuff()
+
+        def get_pandora_age(text):
+            labels = ["age"]
+
+            # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+            att_lst = PandoraAttGen.__get_label_predictions(labels, text)
+            return att_lst[0]  # This generator returns a single value, the age prediction
+
+        return PandoraAttGen('PANDORA_AGE', TYPE_NUM, get_pandora_age)
+
+    @staticmethod
+    def gen_pandora_gender():
+        if not PandoraAttGen.feat_names:
+            PandoraAttGen.init_values_and_models_and_stuff()
+
+        def get_pandora_gender(text):
+            labels = ["is_female"]
+
+            # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+            att_lst = PandoraAttGen.__get_label_predictions(labels, text)
+            return att_lst[0]  # This generator returns a single value, the age prediction
+
+        return PandoraAttGen('PANDORA_GENDER', TYPE_NUM, get_pandora_gender)
+
+    @staticmethod
+    def __get_label_predictions(label_list, text):
+        the_matrix = PandoraAttGen.__text_to_matrix(text)
+
+        # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+        att_lst = []
+        for label_name in label_list:
+            label_setup: PandoraSetUp = PandoraAttGen.model_dic[label_name]
+            matrix_reloaded = label_setup.tfidfer.fit_transform(the_matrix)
+            matrix_revolutions = csr_matrix(label_setup.fs.transform(matrix_reloaded))
+            att_lst.append(label_setup.model.predict(matrix_revolutions)[0])  # we take the first (and only) value predicted
+        return att_lst
 
     @staticmethod
     def parse_args(args):
@@ -68,10 +125,46 @@ class PandoraAttGen(VoidAttGen):
         return parser.parse_args(args)
 
     @staticmethod
-    def init_values_and_stuff_mtbi():
-        argstr = ['-data_path', "C:\\Users\\konom\\Downloads\\pandora_baseline\\data", '-label', 'allmbti', '-tasktype',
-                  'classification', '-folds', 'mbti', '-feats', '1gram', '-model', 'lr', '-variant', 'LR-N']
-        args = PandoraAttGen.parse_args(argstr)
+    def __text_to_matrix(text):
+        # Split by words and create a dict with the word frequency
+        words = text.split()
+        ui_dict = {}
+        for word in words:
+            if word in ui_dict:
+                ui_dict[word] += 1
+            else:
+                ui_dict[word] = 1
+
+        # Mapping the instance's word frequency (WF) to the words (feats) tracked by Pandora in a list
+        vect = []
+        for word in PandoraAttGen.feat_names:
+            if word in ui_dict:
+                vect.append(ui_dict[word])
+            else:
+                vect.append(0)
+
+        # Use of the list to create a sparse matrix readable by the Pandora models
+        rows = []
+        cols = []
+        mxdata = []
+        for i in range(len(vect)):
+            if vect[i] != 0:
+                rows.append(0)
+                cols.append(i)
+                mxdata.append(vect[i])
+        enter_the_matrix = csr_matrix((mxdata, (rows, cols)), shape=(1, len(PandoraAttGen.feat_names)))
+        return enter_the_matrix
+
+    @staticmethod
+    def init_values_and_models_and_stuff():
+        PandoraAttGen.__init_mbti_models()
+        PandoraAttGen.__init_gender_model()
+        PandoraAttGen.__init_age_model()
+
+    @staticmethod
+    def __init_mbti_models():
+        argstr = '-data_path "C:\\Users\\konom\\Downloads\\pandora_baseline\\data" -label allmbti -tasktype classification -folds mbti -feats 1gram -model lr -variant LR-N'
+        args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
         labels = ["introverted", "intuitive", "thinking", "perceiving"]
@@ -79,8 +172,35 @@ class PandoraAttGen(VoidAttGen):
             data = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path, "author_profiles.csv"), label_name, args.tasktype, args.folds, 0, args)
             df, feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(data, args.data_path, args)
             tupla = PandoraAttGen.generate_setup(data, df, args.tasktype, feat_names, args, extra_feats, extra_feat_names, label_name, feat_size=15784, hp=8, fold_in=4)
+            PandoraAttGen.model_dic[label_name] = PandoraSetUp(tupla[0], tupla[1], tupla[2])
+        return None
 
-            PandoraAttGen.datadic[label_name] = PandoraSetUp(tupla[0], tupla[1], tupla[2])
+    @staticmethod
+    def __init_age_model():
+        argstr = '-data_path "C:\\Users\\konom\\Downloads\\pandora_baseline\\data" -label age -tasktype regression -folds age -feats 1gram -model lr -variant LR-N'
+        args = PandoraAttGen.parse_args(argstr.split())
+        unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
+        txt = []
+        labels = ["age"]
+        for label_name in labels:
+            data = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path, "author_profiles.csv"), label_name, args.tasktype, args.folds, 0, args)
+            df, feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(data, args.data_path, args)
+            tupla = PandoraAttGen.generate_setup(data, df, args.tasktype, feat_names, args, extra_feats, extra_feat_names, label_name, feat_size=15784, hp=8, fold_in=4)
+            PandoraAttGen.model_dic[label_name] = PandoraSetUp(tupla[0], tupla[1], tupla[2])
+        return None
+
+    @staticmethod
+    def __init_gender_model():
+        argstr = '-data_path "C:\\Users\\konom\\Downloads\\pandora_baseline\\data" -label is_female -tasktype classification -folds gender -feats 1gram -model lr -variant LR-N'
+        args = PandoraAttGen.parse_args(argstr.split())
+        unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
+        txt = []
+        labels = ["is_female"]
+        for label_name in labels:
+            data = PandoraAttGen.load_data(unm, txt, os.path.join(args.data_path, "author_profiles.csv"), label_name, args.tasktype, args.folds, 0, args)
+            df, feat_names, extra_feats, extra_feat_names = PandoraAttGen.precompute_or_load_feats(data, args.data_path, args)
+            tupla = PandoraAttGen.generate_setup(data, df, args.tasktype, feat_names, args, extra_feats, extra_feat_names, label_name, feat_size=15784, hp=8, fold_in=4)
+            PandoraAttGen.model_dic[label_name] = PandoraSetUp(tupla[0], tupla[1], tupla[2])
         return None
 
     @staticmethod
@@ -356,4 +476,4 @@ class PandoraAttGen(VoidAttGen):
                 raise Exception("Unknown model type: " + str(args.model))
         else:
             raise Exception("Unkown label type -- " + str(label_type))
-        return (model)
+        return model
