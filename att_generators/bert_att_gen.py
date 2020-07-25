@@ -9,10 +9,11 @@ class BertAttGen(VoidAttGen):
 
     @staticmethod
     def gen_bert_vector():
-        def get_bert_vector(text):
-            sentences = [text]
-            sentence_embeddings = BertAttGen.model.encode(sentences)
-            vector = sentence_embeddings[0].tolist()
-            return vector
+        return BertAttGen('BERT_VECT', TYPE_LST, BertAttGen.get_bert_vector)
 
-        return BertAttGen('BERT_VECT', TYPE_LST, get_bert_vector)
+    @staticmethod
+    def get_bert_vector(text):
+        sentences = [text]
+        sentence_embeddings = BertAttGen.model.encode(sentences)
+        vector = sentence_embeddings[0].tolist()
+        return vector

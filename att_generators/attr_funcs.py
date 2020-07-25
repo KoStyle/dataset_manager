@@ -48,3 +48,19 @@ def get_verb_count(text):
 
 def get_pronoun_count(text):
     return __get_tag_count(text, TAG_PRON)
+
+
+def get_sentence_count(text):
+    # clean_txt = text.replace('...', '')  # We delete three consecutive points
+    sentence_count = 0
+    sentences = text.split('.')
+    for sent in sentences:
+        if sent != '':
+            sentence_count += 1
+
+    return sentence_count
+
+
+def get_test_vector_attr(text):
+    test = [1, 2, 3, 420, 69, 666, 2666618]
+    return test

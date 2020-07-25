@@ -55,22 +55,8 @@ class VoidAttGen:
 
     @staticmethod
     def gen_sentences():
-        def get_sentence_count(text):
-            # clean_txt = text.replace('...', '')  # We delete three consecutive points
-            sentence_count = 0
-            sentences = text.split('.')
-            for sent in sentences:
-                if sent != '':
-                    sentence_count += 1
-
-            return sentence_count
-
         return VoidAttGen('SENT_COUNT', TYPE_NUM, get_sentence_count)
 
     @staticmethod
     def gen_test_vector():
-        def get_test_vector_attr(text):
-            test = [1, 2, 3, 420, 69, 666, 2666618]
-            return test
-
         return VoidAttGen('TEST_VECT', TYPE_LST, get_test_vector_attr)

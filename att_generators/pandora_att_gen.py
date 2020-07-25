@@ -39,45 +39,78 @@ class PandoraAttGen(VoidAttGen):
         if PandoraAttGen.feat_names is None:
             PandoraAttGen.init_values_and_models_and_stuff()
 
-        def get_pandora_mbti(text):
-            labels = ["introverted", "intuitive", "thinking", "perceiving"]
+        return PandoraAttGen('PANDORA_MBTI', TYPE_LST, PandoraAttGen.get_pandora_mbti)
 
-            # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
-            att_lst = PandoraAttGen.__get_label_predictions(labels, text)
-            return att_lst
+    @staticmethod
+    def get_pandora_mbti(text):
+        labels = ["introverted", "intuitive", "thinking", "perceiving"]
 
-        return PandoraAttGen('PANDORA_MBTI', TYPE_LST, get_pandora_mbti)
+        # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+        att_lst = PandoraAttGen.__get_label_predictions(labels, text)
+        return att_lst
+
+    @staticmethod
+    def gen_pandora_mbti_probability():
+        if PandoraAttGen.feat_names is None:
+            PandoraAttGen.init_values_and_models_and_stuff()
+
+        return PandoraAttGen('PANDORA_MBTI_PROB', TYPE_LST, PandoraAttGen.get_pandora_mbti_probability)
+
+    @staticmethod
+    def get_pandora_mbti_probability(text):
+        labels = ["introverted", "intuitive", "thinking", "perceiving"]
+
+        # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+        att_lst = PandoraAttGen.__get_label_predictions(labels, text, percentage=True)
+        return att_lst
 
     @staticmethod
     def gen_pandora_age():
         if PandoraAttGen.feat_names is None:
             PandoraAttGen.init_values_and_models_and_stuff()
 
-        def get_pandora_age(text):
-            labels = ["age"]
+        return PandoraAttGen('PANDORA_AGE', TYPE_NUM, PandoraAttGen.get_pandora_age)
 
-            # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
-            att_lst = PandoraAttGen.__get_label_predictions(labels, text)
-            return att_lst[0]  # This generator returns a single value, the age prediction
+    @staticmethod
+    def get_pandora_age(text):
+        labels = ["age"]
 
-        return PandoraAttGen('PANDORA_AGE', TYPE_NUM, get_pandora_age)
+        # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+        att_lst = PandoraAttGen.__get_label_predictions(labels, text)
+        return att_lst[0]  # This generator returns a single value, the age prediction
 
     @staticmethod
     def gen_pandora_gender():
         if PandoraAttGen.feat_names is None:
             PandoraAttGen.init_values_and_models_and_stuff()
 
-        def get_pandora_gender(text):
-            labels = ["is_female"]
-
-            # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
-            att_lst = PandoraAttGen.__get_label_predictions(labels, text)
-            return att_lst[0]  # This generator returns a single value, the age prediction
-
-        return PandoraAttGen('PANDORA_GENDER', TYPE_NUM, get_pandora_gender)
+        return PandoraAttGen('PANDORA_GENDER', TYPE_NUM, PandoraAttGen.get_pandora_gender)
 
     @staticmethod
-    def __get_label_predictions(label_list, text):
+    def get_pandora_gender(text):
+        labels = ["is_female"]
+
+        # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+        att_lst = PandoraAttGen.__get_label_predictions(labels, text)
+        return att_lst[0]  # This generator returns a single value, the age prediction
+
+    @staticmethod
+    def gen_pandora_gender_probability():
+        if PandoraAttGen.feat_names is None:
+            PandoraAttGen.init_values_and_models_and_stuff()
+
+        return PandoraAttGen('PANDORA_GENDER_PROB', TYPE_NUM, PandoraAttGen.get_pandora_gender_probability)
+
+    @staticmethod
+    def get_pandora_gender_probability(text):
+        labels = ["is_female"]
+
+        # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
+        att_lst = PandoraAttGen.__get_label_predictions(labels, text, percentage=True)
+        return att_lst[0]  # This generator returns a single value, the age prediction
+
+    @staticmethod
+    def __get_label_predictions(label_list, text, percentage=False):
         the_matrix = PandoraAttGen.__text_to_matrix(text)
 
         # Transformation of the matrix according the feat_selection and tfidf normalizer of each model and store the values returned in a list
@@ -86,7 +119,14 @@ class PandoraAttGen(VoidAttGen):
             label_setup: PandoraSetUp = PandoraAttGen.model_dic[label_name]
             matrix_reloaded = label_setup.tfidfer.fit_transform(the_matrix)
             matrix_revolutions = csr_matrix(label_setup.fs.transform(matrix_reloaded))
-            att_lst.append(label_setup.model.predict(matrix_revolutions)[0])  # we take the first (and only) value predicted
+
+            if percentage:
+                att_lst.append(label_setup.model.predict_proba(matrix_revolutions)[0][1])  # we take the probabilty of the current label being 1 (positive) in this case
+                # we got an Array of arrays, each element of the array is the positive and negative probabilities of the label
+                # for the case being tested. the [0] points the case (we only have one), and the[1] points the positive probability.
+                # If we wanted the negative probability of the first case, it would be[0][0]
+            else:
+                att_lst.append(label_setup.model.predict(matrix_revolutions)[0])  # we take the first (and only) value predicted
         return att_lst
 
     @staticmethod

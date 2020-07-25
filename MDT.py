@@ -2,6 +2,9 @@ import math
 import sqlite3
 
 import nltk
+import multiprocessing as mp
+
+from joblib import Parallel, delayed
 
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from constants import DATASET_IMDB
@@ -51,11 +54,10 @@ def generate_intances_attributes(conn: sqlite3.Connection, dataset):
     list_active_generators = get_active_attr_generators(conn)
 
     user_instances = load_all_db_instances(conn, dataset)
-
-    # TODO test speeds with different commit strategies (a lot of small ones or a big chunkus)
-    generate_attributes(user_instances, list_active_generators)
-    for instance in user_instances:
-        instance.db_log_instance(conn)
+    # result= Parallel(n_jobs=12)(delayed(generate_attributes)([row], list_active_generators) for row in user_instances)
+    generate_attributes(user_instances, list_active_generators, conn=conn)
+    # for instance in user_instances:
+    #     instance.db_log_instance(conn)
 
 
 @chrono
@@ -79,9 +81,9 @@ if __name__ == "__main__":
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.25)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.5)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.75)
-    generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
     # print_chrono()
-    # generate_intances_attributes(conn, DATASET_IMDB)
+    generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
 
     # @chronometer

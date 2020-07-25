@@ -1,4 +1,5 @@
 import sqlite3
+import multiprocessing as mp
 
 from att_generators.pandora_att_gen import PandoraAttGen
 from att_generators.void_attr_gen import VoidAttGen
@@ -20,6 +21,8 @@ def attribute_generator_publisher(optional_conn: sqlite3.Connection = None):
     published_attributes.append(PandoraAttGen.gen_pandora_mbti())
     published_attributes.append(PandoraAttGen.gen_pandora_age())
     published_attributes.append(PandoraAttGen.gen_pandora_gender())
+    published_attributes.append(PandoraAttGen.gen_pandora_mbti_probability())
+    published_attributes.append(PandoraAttGen.gen_pandora_gender_probability())
 
     if optional_conn:
         conn = optional_conn
