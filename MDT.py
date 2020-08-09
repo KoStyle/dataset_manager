@@ -1,15 +1,13 @@
 import math
 import sqlite3
+import subprocess
 
 import nltk
-import multiprocessing as mp
-
-from joblib import Parallel, delayed
 
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
-from constants import DATASET_IMDB
-from io_management import create_database_schema, load_dataset, load_all_db_instances
-from util import chrono
+from constants import DATASET_APP
+from io_management import load_dataset, load_all_db_instances
+from util import chrono, print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -49,6 +47,19 @@ def generate_user_instances(conn: sqlite3.Connection, dataset, instance_redundan
         print("Generated instances of user %s. %d/%d of users completed" % (key, j, max_j))
 
 
+def anna_run_this_please(ids):
+    procs = []
+    for id in ids:
+        procs.append(subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', str(id), '0']))
+    for p in procs:
+        p.wait()
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '1', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '1', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '2', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '1', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '2', '0']).wait()
+
+
 def generate_intances_attributes(conn: sqlite3.Connection, dataset):
     attribute_generator_publisher(conn)  # activated by default
     list_active_generators = get_active_attr_generators(conn)
@@ -74,16 +85,19 @@ if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
 
-    create_database_schema()
-    setup_nltk()
+    #create_database_schema()
+    #setup_nltk()
     conn = sqlite3.connect("example.db")
 
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.25)
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.5)
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.75)
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
-    # print_chrono()
-    generate_intances_attributes(conn, DATASET_IMDB)
+    # anna_run_this_please([0,3])
+    
+
+    #generate_user_instances(conn, DATASET_APP, instance_redundancy=30, instance_perc=0.95)
+    # generate_user_instances(conn, DATASET_APP, instance_redundancy=10, instance_perc=0.5)
+    # generate_user_instances(conn, DATASET_APP, instance_redundancy=10, instance_perc=0.75)
+    # generate_user_instances(conn, DATASET_APP, instance_redundancy=1, instance_perc=1.0)
+    print_chrono()
+    generate_intances_attributes(conn, DATASET_APP)
     conn.close()
 
     # @chronometer

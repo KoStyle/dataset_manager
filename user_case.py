@@ -110,8 +110,12 @@ class UserCase:
                 j += 1
             i += 1
 
-        self.maep_socal = (pairs - correct_socal_pairs) / float(pairs)
-        self.maep_svr = (pairs - correct_svr_pairs) / float(pairs)
+        if pairs > 0:
+            self.maep_socal = (pairs - correct_socal_pairs) / float(pairs)
+            self.maep_svr = (pairs - correct_svr_pairs) / float(pairs)
+        else:
+            self.maep_socal = float("inf")
+            self.maep_svr = float("inf")
 
     def add_review(self, review):
         if type(review) is BaseCase:
