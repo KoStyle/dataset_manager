@@ -1,11 +1,58 @@
 import sqlite3
+import pandas as pd
+from scipy.sparse import csr_matrix
 
+from att_generators.pandora_att_gen import PandoraAttGen
 from base_case import BaseCase
 from constants import CLASS_SOCAL, CLASS_SVR, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
     TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
     MUSR_MAEP_SOCAL, DATASET_IMDB, DATASET_APP
 from user_case import UserCase
 from util import chronometer2
+
+
+def read_dataset_from_setup(conn: sqlite3.Connection, id_setup):
+    select_setup_statement = "SELECT * fron NNSETUPS where id_setup=?"  # TODO consultar nombre campo con query
+    c = conn.cursor()
+
+    try:
+        c.execute(select_setup_statement, (id_setup,))
+        select_cases = c.fetchone()[0]  # TODO hacer el primer select para que en la posicion 0 este la query
+        c.execute(select_cases)
+        results = c.fetchall()
+        datalist = []
+        expected_outputs = []
+        for result in results:
+            values = result["input_values"].split('@')  # TODO mas o menos algo asi
+            values = [float(element) for element in values]
+            datalist.append(values)
+            expected_outputs.append(result["output_values"].split('@')[0])
+
+            # TODO convert expected output to series, return tuple
+
+        the_matrix = __datalist_to_datamatrix(datalist)
+        return the_matrix
+
+    except sqlite3.OperationalError as e:
+        print(e)
+        # TODO Something something error
+
+
+# converts a list of lists of floats to a csr matrix
+def __datalist_to_datamatrix(datalist):
+    # Use of the list to create a sparse matrix readable by the Pandora models
+    rows = []
+    cols = []
+    mxdata = []
+    for u in range(len(datalist)):
+        vect = datalist[u]
+        for i in range(len(vect)):
+            if vect[i] != 0:
+                rows.append(u)
+                cols.append(i)
+                mxdata.append(vect[i])
+    enter_the_matrix = csr_matrix((mxdata, (rows, cols)), shape=(len(datalist), len(datalist[0])))
+    return enter_the_matrix
 
 
 def __load_dataset_files_IMBD():
@@ -57,6 +104,7 @@ def load_all_db_instances(conn: sqlite3.Connection, dataset):
         ui.db_load_attr(conn)
         user_instances.append(ui)
     return user_instances
+
 
 @chronometer2
 def load_dataset_from_db(conn: sqlite3.Connection, dataset):
