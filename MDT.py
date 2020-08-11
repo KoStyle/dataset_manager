@@ -4,6 +4,7 @@ import subprocess
 
 import nltk
 
+from att_generators.pandora_att_gen import PandoraAttGen
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from constants import DATASET_APP
 from io_management import load_dataset, load_all_db_instances
@@ -88,6 +89,7 @@ if __name__ == "__main__":
     #create_database_schema()
     #setup_nltk()
     conn = sqlite3.connect("example.db")
+    PandoraAttGen.this_is_a_secret()
 
     # anna_run_this_please([0,3])
     
@@ -97,7 +99,7 @@ if __name__ == "__main__":
     # generate_user_instances(conn, DATASET_APP, instance_redundancy=10, instance_perc=0.75)
     # generate_user_instances(conn, DATASET_APP, instance_redundancy=1, instance_perc=1.0)
     print_chrono()
-    generate_intances_attributes(conn, DATASET_APP)
+    #generate_intances_attributes(conn, DATASET_APP)
     conn.close()
 
     # @chronometer

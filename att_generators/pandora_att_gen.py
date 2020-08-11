@@ -128,6 +128,9 @@ class PandoraAttGen(VoidAttGen):
             else:
                 att_lst.append(label_setup.model.predict(matrix_revolutions)[0])  # we take the first (and only) value predicted
         return att_lst
+    @staticmethod
+    def this_is_a_secret():
+        PandoraAttGen.__init_mbti_models()
 
     @staticmethod
     def parse_args(args):
