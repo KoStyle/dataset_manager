@@ -1,6 +1,6 @@
 import math
 import sqlite3
-from random import random
+import random
 
 import numpy
 from scipy.sparse import csr_matrix
@@ -40,11 +40,11 @@ def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
         the_train_exp = __get_expected_array(the_train)
         the_test_exp = __get_expected_array(the_test)
 
-        # the_matrix = __datalist_to_datamatrix(datalist)
+        the_matrix = __datalist_to_datamatrix(datalist)
         # # expectations = numpy.array([numpy.array(xi) for xi in expected_outputs])
-        # expectations = numpy.array(expected_outputs)
+        expectations = numpy.array(expected_outputs)
 
-        return the_train_mx, the_train_exp, the_test_mx, the_test_exp
+        return the_train_mx, the_train_exp, the_test_mx, the_test_exp, the_matrix, expectations
 
     except sqlite3.OperationalError as e:
         print(e)
@@ -79,8 +79,7 @@ def __split_dsentries(dsentries, train_perc):
     negative_entries = list(set(negative_entries) - set(train_entries))
 
     #we put what's left into testing (good enough I guess..)
-    test_entries.append(positive_entries)
-    test_entries.append(negative_entries)
+    test_entries = positive_entries + negative_entries
 
     #we shuffle this bad booois
     random.shuffle(train_entries)
@@ -110,7 +109,7 @@ def __datalist_to_datamatrix(datalist):
                 rows.append(u)
                 cols.append(i)
                 mxdata.append(vect[i])
-    enter_the_matrix = csr_matrix((mxdata, (rows, cols)), shape=(len(datalist), len(datalist[0])))
+    enter_the_matrix = csr_matrix((mxdata, (rows, cols)), shape=(len(datalist), len(vect)))
     return enter_the_matrix
 
 
