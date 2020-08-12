@@ -1,44 +1,101 @@
+import math
 import sqlite3
-import pandas as pd
+from random import random
+
+import numpy
 from scipy.sparse import csr_matrix
 
-from att_generators.pandora_att_gen import PandoraAttGen
 from base_case import BaseCase
 from constants import CLASS_SOCAL, CLASS_SVR, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
     TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
     MUSR_MAEP_SOCAL, DATASET_IMDB, DATASET_APP
+from dataset_entry import DsEntry
 from user_case import UserCase
 from util import chronometer2
 
 
-def read_dataset_from_setup(conn: sqlite3.Connection, id_setup):
-    select_setup_statement = "SELECT * fron NNSETUPS where id_setup=?"  # TODO consultar nombre campo con query
+def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
+    select_setup_statement = "SELECT select_statement from NNSETUPS where id_setup=?"
     c = conn.cursor()
 
     try:
         c.execute(select_setup_statement, (id_setup,))
-        select_cases = c.fetchone()[0]  # TODO hacer el primer select para que en la posicion 0 este la query
+        select_cases = c.fetchone()[0]
         c.execute(select_cases)
         results = c.fetchall()
         datalist = []
         expected_outputs = []
+        entry_list = []
         for result in results:
-            values = result["input_values"].split('@')  # TODO mas o menos algo asi
+            values = result[2].split('@')
             values = [float(element) for element in values]
             datalist.append(values)
-            expected_outputs.append(result["output_values"].split('@')[0])
+            entry_list.append(DsEntry(values, float(result[3])))  # new and exciting stuff!!!
+            # expected_outputs.append([float(element) for element in result[3].split('@')])
+            expected_outputs.append(float(result[3]))
 
-            # TODO convert expected output to series, return tuple
+        the_train, the_test = __split_dsentries(entry_list, train_perc)
+        the_train_mx = __datalist_to_datamatrix(the_train)
+        the_test_mx = __datalist_to_datamatrix(the_test)
+        the_train_exp = __get_expected_array(the_train)
+        the_test_exp = __get_expected_array(the_test)
 
-        the_matrix = __datalist_to_datamatrix(datalist)
-        return the_matrix
+        # the_matrix = __datalist_to_datamatrix(datalist)
+        # # expectations = numpy.array([numpy.array(xi) for xi in expected_outputs])
+        # expectations = numpy.array(expected_outputs)
+
+        return the_train_mx, the_train_exp, the_test_mx, the_test_exp
 
     except sqlite3.OperationalError as e:
         print(e)
         # TODO Something something error
 
 
-# converts a list of lists of floats to a csr matrix
+def __split_dsentries(dsentries, train_perc):
+    positive_entries = []
+    negative_entries = []
+    train_entries = []
+    test_entries = []
+    train_cases_amount = math.floor(len(dsentries) * train_perc)
+    test_cases_amount = len(dsentries) - train_cases_amount
+
+    for entry in dsentries:
+        entry: DsEntry
+        if entry.output_value == 0:
+            negative_entries.append(entry)
+        elif entry.output_value == 1:
+            positive_entries.append(entry)
+
+    random.shuffle(positive_entries)
+    random.shuffle(negative_entries)
+
+    #We add positive and negative cases for the training set until we fill this bad boy up
+    for i in range(math.floor(train_cases_amount/2)):
+        train_entries.append(positive_entries[i % len(positive_entries)])
+        train_entries.append(negative_entries[i % len(negative_entries)])
+
+    #We delete cases that are used in test
+    positive_entries = list(set(positive_entries) - set(train_entries))
+    negative_entries = list(set(negative_entries) - set(train_entries))
+
+    #we put what's left into testing (good enough I guess..)
+    test_entries.append(positive_entries)
+    test_entries.append(negative_entries)
+
+    #we shuffle this bad booois
+    random.shuffle(train_entries)
+    random.shuffle(test_entries)
+
+    return train_entries, test_entries
+
+def __get_expected_array(dsentries):
+    expected_list = []
+    for entry in dsentries:
+        entry: DsEntry
+        expected_list.append(entry.output_value)
+    return numpy.array(expected_list)
+
+# converts a list of lists of floats (or a list of DsEntries) to a csr matrix
 def __datalist_to_datamatrix(datalist):
     # Use of the list to create a sparse matrix readable by the Pandora models
     rows = []
@@ -46,6 +103,8 @@ def __datalist_to_datamatrix(datalist):
     mxdata = []
     for u in range(len(datalist)):
         vect = datalist[u]
+        if isinstance(vect, DsEntry):
+            vect = vect.input_values
         for i in range(len(vect)):
             if vect[i] != 0:
                 rows.append(u)

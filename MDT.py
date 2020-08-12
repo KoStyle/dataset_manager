@@ -1,34 +1,29 @@
 import math
 import sqlite3
 
-import nltk
-import multiprocessing as mp
-
-from joblib import Parallel, delayed
+from sklearn.linear_model import Ridge
 
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
-from constants import DATASET_IMDB
-from io_management import create_database_schema, load_dataset, load_all_db_instances
-from util import chrono
+from io_management import create_database_schema, load_dataset, load_all_db_instances, read_dataset_from_setup
 
 RUTA_BASE = 'ficheros_entrada/'
 
 
-def setup_nltk():
-    try:
-        nltk.data.find('tokenizers/punkt')
-    except LookupError:
-        nltk.download('punkt')
-
-    try:
-        nltk.data.find('taggers/averaged_perceptron_tagger')
-    except LookupError:
-        nltk.download('averaged_perceptron_tagger')
-
-    try:
-        nltk.data.find('taggers/universal_tagset')
-    except LookupError:
-        nltk.download('universal_tagset')
+# def setup_nltk():
+#     try:
+#         nltk.data.find('tokenizers/punkt')
+#     except LookupError:
+#         nltk.download('punkt')
+#
+#     try:
+#         nltk.data.find('taggers/averaged_perceptron_tagger')
+#     except LookupError:
+#         nltk.download('averaged_perceptron_tagger')
+#
+#     try:
+#         nltk.data.find('taggers/universal_tagset')
+#     except LookupError:
+#         nltk.download('universal_tagset')
 
 
 def generate_user_instances(conn: sqlite3.Connection, dataset, instance_redundancy=1, instance_perc=1):
@@ -60,14 +55,30 @@ def generate_intances_attributes(conn: sqlite3.Connection, dataset):
     #     instance.db_log_instance(conn)
 
 
-@chrono
-def test_bert_sentence():
-    global model
-    sentences = ["This is a test sentence, to see if I'll drown in a river bank, or if I'll work in a bank. Also I want to see what does this return"]
-    sentence_embeddings = model.encode(sentences)
-    vector = sentence_embeddings[0].tolist()
-    print("Ya")
-    return vector
+# @chrono
+# def test_bert_sentence():
+#     global model
+#     sentences = ["This is a test sentence, to see if I'll drown in a river bank, or if I'll work in a bank. Also I want to see what does this return"]
+#     sentence_embeddings = model.encode(sentences)
+#     vector = sentence_embeddings[0].tolist()
+#     print("Ya")
+#     return vector
+
+def measure_model(modell, the_matrix, the_expected, label):
+    matrix_classified = modell.predict(the_matrix_test)
+    correct = 0
+    for i in range(len(the_expected)):
+        classi = matrix_classified[i]
+        if classi > 0.5:
+            classi = 1
+        else:
+            classi = 0
+
+        if the_expected[i] == classi:
+            correct += 1
+
+    print(label +" set acierto (correctos/totales):")
+    print(float(correct) / len(the_expected))
 
 
 if __name__ == "__main__":
@@ -75,15 +86,21 @@ if __name__ == "__main__":
     # get_chrono(test_bert_sentence)
 
     create_database_schema()
-    setup_nltk()
+    # setup_nltk()
     conn = sqlite3.connect("example.db")
+    the_matrix_train, the_expected_train, the_matrix_test, the_expected_test = read_dataset_from_setup(conn, 4, train_perc=0.3)
+    # model = LogisticRegression(penalty="none", max_iter=60000)
+    model = Ridge(max_iter=100000, solver='sag')
+    model.fit(the_matrix_train, the_expected_train)
+    measure_model(model, the_matrix_train, the_expected_train, "Train")
+    measure_model(model, the_matrix_test, the_expected_test, "Test")
 
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.25)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.5)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=10, instance_perc=0.75)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
     # print_chrono()
-    generate_intances_attributes(conn, DATASET_IMDB)
+    # generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
 
     # @chronometer
