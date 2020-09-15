@@ -1,20 +1,15 @@
 import math
+import random
 import sqlite3
 import subprocess
 
-from sklearn import svm, tree
-from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
-from sklearn.linear_model import Ridge, LogisticRegression
-from sklearn.neural_network import MLPClassifier
-import nltk
+from sklearn.ensemble import RandomForestClassifier
 
-from att_generators.pandora_att_gen import PandoraAttGen
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from constants import DATASET_IMDB
-from io_management import create_database_schema, load_dataset, load_all_db_instances, read_dataset_from_setup
-from constants import DATASET_APP
+from dataset_entry import get_entries_of, map_predicted_values
+from io_management import create_database_schema, read_matrixes_from_setup, __get_expected_array, __datalist_to_datamatrix, read_dataset_from_setup
 from io_management import load_dataset, load_all_db_instances
-from util import chrono, print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -70,12 +65,9 @@ def anna_run_this_please(ids):
 def generate_intances_attributes(conn: sqlite3.Connection, dataset):
     attribute_generator_publisher(conn)  # activated by default
     list_active_generators = get_active_attr_generators(conn)
-
     user_instances = load_all_db_instances(conn, dataset)
     # result= Parallel(n_jobs=12)(delayed(generate_attributes)([row], list_active_generators) for row in user_instances)
-    generate_attributes(user_instances, list_active_generators, conn=conn)
-    # for instance in user_instances:
-    #     instance.db_log_instance(conn)
+    generate_attributes(user_instances, list_active_generators, conn=conn)  # logs instances on generation
 
 
 # @chrono
@@ -100,12 +92,64 @@ def measure_model(model, the_matrix, the_expected, label):
         if the_expected[i] == classi:
             correct += 1
 
-    print(label +" set acierto (correctos/totales):")
+    print(label + " set acierto (correctos/totales):")
     print(float(correct) / len(the_expected))
+    return correct, matrix_classified
+
+
+def convert_ds_to_mx(dsentries):
+    the_matrix = __datalist_to_datamatrix(dsentries)
+    the_expected = __get_expected_array(dsentries)
+    return the_matrix, the_expected
+
+
+class ModelRun():
+    def __init__(self, model, id_setup, kfolds):
+        self.model = model
+        self.id_setup = id_setup
+        self.kfolds = kfolds
+        self.precision = 0.
+        self.classified_entries=[]
+
+
+
+def model_run_but_better(models, conn):
+    print("Let's play!")
+    for m in models:
+        m: ModelRun
+        ds = read_dataset_from_setup(conn, m.id_setup)
+        folds = stratify(ds, m.kfolds)
+
+        testfolds = []
+        correct_classifications = 0
+        for i in range(len(folds)):
+            testset = folds[i]
+            trainset = []
+            for t in range(len(folds)):
+                if t != i:
+                    trainset = trainset + folds[t]
+
+            train_mx, train_expected = convert_ds_to_mx(trainset)
+            test_mx, test_expected = convert_ds_to_mx(testset)
+
+            m.model.fit(train_mx, train_expected)
+
+            new_matches, the_classified = measure_model(m.model, test_mx, test_expected, "Fold {}".format(i))
+            correct_classifications += new_matches
+            testset = map_predicted_values(testset, the_classified)
+            testfolds += testset #this is used to evaluate the performance of the original IRR algorithm with our modification.
+
+        m.precision=correct_classifications/len(ds)
+        m.classified_entries=testfolds
+        print("Total model precision {}-folds: {}".format(m.kfolds, m.precision))
+        #TODO guardar en DB el resultado del run, el dataset, su madre, su padre, su tia, etc y los IRR de cada usuario para SOCAL, SVR y ADAPTATIVO
+
+
+
 
 def model_run(models, id_setup, trainperc, conn):
     print("Let's get them entries!")
-    the_matrix_train, the_expected_train, the_matrix_test, the_expected_test, the_matrix, the_expected = read_dataset_from_setup(conn, id_setup, train_perc=trainperc)
+    the_matrix_train, the_expected_train, the_matrix_test, the_expected_test, the_matrix, the_expected = read_matrixes_from_setup(conn, id_setup, train_perc=trainperc)
     for model in models:
         print("Let's fitness " + str(model))
         model.fit(the_matrix_train, the_expected_train)
@@ -116,10 +160,50 @@ def model_run(models, id_setup, trainperc, conn):
         print("-------")
         print()
 
+
+def stratify(entries_list, k):
+    folds = []
+    positive_cases = get_entries_of(entries_list, 1)
+    negative_cases = get_entries_of(entries_list, 0)
+
+    posi_per_fold = math.floor(len(positive_cases) / k)
+    posi_extra = len(positive_cases) % k
+
+    nega_per_fold = math.floor(len(negative_cases) / k)
+    nega_extra = len(negative_cases) % k
+
+    random.shuffle(positive_cases)
+    random.shuffle(negative_cases)
+
+    for i in range(k):
+        pperfold = 0
+        if posi_extra > 0:
+            pperfold = posi_per_fold + 1
+            posi_extra += -1
+        else:
+            pperfold = posi_per_fold
+
+        nperfold = 0
+        if nega_extra > 0:
+            nperfold = nega_per_fold + 1
+            nega_extra += -1
+        else:
+            nperfold = nega_per_fold
+
+        # Stratified fold comprised of (aproximately) the same ratio of positive and negative cases as the original set
+        fold = positive_cases[:pperfold] + negative_cases[:nperfold]
+        folds.append(fold)
+
+        # We delete from the list the folded cases
+        del positive_cases[:pperfold]
+        del negative_cases[:nperfold]
+
+    return folds
+
+
 if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
-
 
     create_database_schema()
     # setup_nltk()
@@ -131,17 +215,21 @@ if __name__ == "__main__":
     # # models.append(Ridge(max_iter=80000, solver='sag'))
     # # models.append(tree.DecisionTreeClassifier())
     # models.append(ExtraTreesClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
-    # models.append(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
+    models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=4, kfolds=10))
+
+    model_run_but_better(models, conn)
+
+
     # #
     # model_run(models, 3, 0.5, conn)
     # model_run(models, 4, 0.5, conn)
 
-   # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.25)
-   # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.5)
-   # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.75)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.25)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.5)
+    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.75)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
     # print_chrono()
-    generate_intances_attributes(conn, DATASET_IMDB)
+    #generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
 
     # @chronometer

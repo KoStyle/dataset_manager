@@ -1,3 +1,9 @@
+
+# Representations of classes for the classifier
+SOCAL_REPRES = 1
+SVR_REPRES = 0
+
+# Constants for original datasets reading (dictionary reading)
 CLASS_SVR = 'svr'
 CLASS_SOCAL = 'socal'
 CLASS_NOCLASS = 'N/A'
@@ -21,7 +27,7 @@ TAG_SOCAL = "socal"
 TAG_REVIEW = "review"
 TAG_CLASS = "class"
 
-# Attr types
+# Attr types for AttrGenerators
 TYPE_STR = "STRING"
 TYPE_LST = "LIST"
 TYPE_NUM = "INT"
@@ -64,6 +70,10 @@ CONCATS_TID = "tid"
 CONCATS_UID = "uid"
 CONCATS_NUMRE = "numrevs"
 CONCATS_REVST = "revstr"
+
+## END DB CONSTANTS
+
+#MISC
 
 RUTA_BASE = 'ficheros_entrada/'
 

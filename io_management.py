@@ -13,8 +13,7 @@ from dataset_entry import DsEntry
 from user_case import UserCase
 from util import chronometer2
 
-
-def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
+def read_dataset_from_setup(conn: sqlite3.Connection, id_setup):
     select_setup_statement = "SELECT select_statement from NNSETUPS where id_setup=?"
     c = conn.cursor()
 
@@ -23,7 +22,26 @@ def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
         select_cases = c.fetchone()[0]
         c.execute(select_cases)
         results = c.fetchall()
-        datalist = []
+        entry_list = []
+        for result in results:
+            values = [float(element) for element in result[2].split('@')]
+            entry_list.append(DsEntry(result[0], int(result[1]), values, float(result[3])))  # new and exciting stuff!!!
+
+        return entry_list
+    except sqlite3.OperationalError as e:
+        print(e)
+        # TODO Something something error
+
+def read_matrixes_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
+    select_setup_statement = "SELECT select_statement from NNSETUPS where id_setup=?"
+    c = conn.cursor()
+
+    try:
+        c.execute(select_setup_statement, (id_setup,))
+        select_cases = c.fetchone()[0]
+        c.execute(select_cases)
+        results = c.fetchall()
+        datalist = []           #list of lists used to create a matrix.
         expected_outputs = []
         entry_list = []
         for result in results:
@@ -50,7 +68,7 @@ def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
         print(e)
         # TODO Something something error
 
-
+#TODO deprecate the sh*t out of this!
 def __split_dsentries(dsentries, train_perc):
     positive_entries = []
     negative_entries = []
