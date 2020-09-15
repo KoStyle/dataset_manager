@@ -105,20 +105,21 @@ if __name__ == "__main__":
     create_database_schema()
     # setup_nltk()
     conn = sqlite3.connect("example.db")
-    # models = []
+    models = []
     # models.append(LogisticRegression(penalty="none", max_iter=80000))
-    # models.append(MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(6, 3), random_state=1))
-    # models.append(svm.SVC())
-    # models.append(Ridge(max_iter=80000, solver='sag'))
-    # models.append(tree.DecisionTreeClassifier())
+    # # models.append(MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(6, 3), random_state=1))
+    # # models.append(svm.SVC())
+    # # models.append(Ridge(max_iter=80000, solver='sag'))
+    # # models.append(tree.DecisionTreeClassifier())
     # models.append(ExtraTreesClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
     # models.append(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
-    #
+    # #
+    # model_run(models, 3, 0.5, conn)
     # model_run(models, 4, 0.5, conn)
 
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=0.25)
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=0.5)
-    # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=0.75)
+   # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.25)
+   # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.5)
+   # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=2, instance_perc=0.75)
     # generate_user_instances(conn, DATASET_IMDB, instance_redundancy=1, instance_perc=1.0)
     # print_chrono()
     generate_intances_attributes(conn, DATASET_IMDB)

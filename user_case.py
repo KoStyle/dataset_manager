@@ -75,7 +75,7 @@ class UserCase:
 
     def calculate_maep(self):
         '''
-        This method calculates the Mean Average Error in Pairing order (MAEP) for a user based on its reviews. For all posible pairings between
+        This method calculates the Mean Average Error in Pairing order (MAEP) for a user based on its reviews. For all possible pairings between
         its reviews, we check if the IRR method (SOCAL or SVR) orders them in the same way than the user rating. The value represents
         the number of incorrectly ordered pairs divided by the total number of pairs. It stores the values in the attributes
         of the UserCase.
