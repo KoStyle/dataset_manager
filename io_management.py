@@ -1,6 +1,6 @@
 import math
-import sqlite3
 import random
+import sqlite3
 
 import numpy
 from scipy.sparse import csr_matrix
@@ -13,14 +13,18 @@ from dataset_entry import DsEntry
 from user_case import UserCase
 from util import chronometer2
 
-def read_dataset_from_setup(conn: sqlite3.Connection, id_setup):
+
+def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, dataset):
     select_setup_statement = "SELECT select_statement from NNSETUPS where id_setup=?"
     c = conn.cursor()
 
     try:
         c.execute(select_setup_statement, (id_setup,))
         select_cases = c.fetchone()[0]
-        c.execute(select_cases)
+        if '?' in select_cases:
+            c.execute(select_cases, (dataset,))
+        else:
+            c.execute(select_cases)
         results = c.fetchall()
         entry_list = []
         for result in results:
@@ -32,16 +36,21 @@ def read_dataset_from_setup(conn: sqlite3.Connection, id_setup):
         print(e)
         # TODO Something something error
 
-def read_matrixes_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
+
+def read_matrixes_from_setup(conn: sqlite3.Connection, id_setup, train_perc, dataset):
     select_setup_statement = "SELECT select_statement from NNSETUPS where id_setup=?"
     c = conn.cursor()
 
     try:
         c.execute(select_setup_statement, (id_setup,))
         select_cases = c.fetchone()[0]
+        if '?' in select_cases:
+            c.execute(select_cases, (dataset,))
+        else:
+            c.execute(select_cases)
         c.execute(select_cases)
         results = c.fetchall()
-        datalist = []           #list of lists used to create a matrix.
+        datalist = []  # list of lists used to create a matrix.
         expected_outputs = []
         entry_list = []
         for result in results:
@@ -68,7 +77,8 @@ def read_matrixes_from_setup(conn: sqlite3.Connection, id_setup, train_perc):
         print(e)
         # TODO Something something error
 
-#TODO deprecate the sh*t out of this!
+
+# TODO deprecate the sh*t out of this!
 def __split_dsentries(dsentries, train_perc):
     positive_entries = []
     negative_entries = []
@@ -87,23 +97,24 @@ def __split_dsentries(dsentries, train_perc):
     random.shuffle(positive_entries)
     random.shuffle(negative_entries)
 
-    #We add positive and negative cases for the training set until we fill this bad boy up
-    for i in range(math.floor(train_cases_amount/2)):
+    # We add positive and negative cases for the training set until we fill this bad boy up
+    for i in range(math.floor(train_cases_amount / 2)):
         train_entries.append(positive_entries[i % len(positive_entries)])
         train_entries.append(negative_entries[i % len(negative_entries)])
 
-    #We delete cases that are used in test
+    # We delete cases that are used in test
     positive_entries = list(set(positive_entries) - set(train_entries))
     negative_entries = list(set(negative_entries) - set(train_entries))
 
-    #we put what's left into testing (good enough I guess..)
+    # we put what's left into testing (good enough I guess..)
     test_entries = positive_entries + negative_entries
 
-    #we shuffle this bad booois
+    # we shuffle this bad booois
     random.shuffle(train_entries)
     random.shuffle(test_entries)
 
     return train_entries, test_entries
+
 
 def __get_expected_array(dsentries):
     expected_list = []
@@ -111,6 +122,7 @@ def __get_expected_array(dsentries):
         entry: DsEntry
         expected_list.append(entry.output_value)
     return numpy.array(expected_list)
+
 
 # converts a list of lists of floats (or a list of DsEntries) to a csr matrix
 def __datalist_to_datamatrix(datalist):
@@ -154,8 +166,8 @@ def load_dataset_from_files(dataset):
         return __load_dataset_files_IMBD()
 
 
-def load_dataset(conn: sqlite3.Connection, dataset):
-    user_cases = load_dataset_from_db(conn, dataset)
+def load_dataset(conn: sqlite3.Connection, dataset, light_weigth=False):
+    user_cases = load_dataset_from_db(conn, dataset, light_weigth)
     if not user_cases:
         user_cases = load_dataset_from_files(dataset)
         for key in user_cases:
@@ -182,8 +194,7 @@ def load_all_db_instances(conn: sqlite3.Connection, dataset):
     return user_instances
 
 
-@chronometer2
-def load_dataset_from_db(conn: sqlite3.Connection, dataset):
+def load_dataset_from_db(conn: sqlite3.Connection, dataset, light_weight=False):
     select_user_headers = "SELECT %s, %s, %s, %s FROM %s WHERE %s = ?" % (
         MUSR_UID, MUSR_CLASS, MUSR_MAEP_SVR, MUSR_MAEP_SOCAL, DBT_MUSR, MUSR_DS)
     c = conn.cursor()
@@ -196,7 +207,10 @@ def load_dataset_from_db(conn: sqlite3.Connection, dataset):
             uc = UserCase(query_result[0])
             uc.dataset = dataset
             uc.irr_class = query_result[1]
-            uc.db_load_reviews(conn)
+            uc.maep_svr = query_result[2]
+            uc.maep_socal = query_result[3]
+            if not light_weight:
+                uc.db_load_reviews(conn)
             user_cases[uc.user_id] = uc
         if user_cases:
             return user_cases
