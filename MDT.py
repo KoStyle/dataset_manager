@@ -1,14 +1,20 @@
 import math
 import sqlite3
+import subprocess
 
 from sklearn import svm, tree
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.linear_model import Ridge, LogisticRegression
 from sklearn.neural_network import MLPClassifier
+import nltk
 
+from att_generators.pandora_att_gen import PandoraAttGen
 from attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from constants import DATASET_IMDB
 from io_management import create_database_schema, load_dataset, load_all_db_instances, read_dataset_from_setup
+from constants import DATASET_APP
+from io_management import load_dataset, load_all_db_instances
+from util import chrono, print_chrono
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -46,6 +52,19 @@ def generate_user_instances(conn: sqlite3.Connection, dataset, instance_redundan
             uc.db_log_instance(conn)
         j += 1
         print("Generated instances of user %s. %d/%d of users completed" % (key, j, max_j))
+
+
+def anna_run_this_please(ids):
+    procs = []
+    for id in ids:
+        procs.append(subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', str(id), '0']))
+    for p in procs:
+        p.wait()
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '1', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '1', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '2', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '1', '0'])
+    # subprocess.Popen(['C:\\Users\\konom\\Downloads\\openjdk-14+36_windows-x64_bin\\jdk-14\\bin\\java', '-jar', 'ANNA.jar', 'example.db', '2', '0']).wait()
 
 
 def generate_intances_attributes(conn: sqlite3.Connection, dataset):
