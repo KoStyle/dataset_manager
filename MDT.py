@@ -2,6 +2,8 @@ import math
 import random
 import sqlite3
 import subprocess
+import pandas as pd
+import matplotlib.pyplot as plt
 
 from sklearn import svm, tree
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
@@ -16,6 +18,8 @@ from io_management import create_database_schema, read_matrixes_from_setup, __ge
 from io_management import load_dataset, load_all_db_instances
 from user_case import UserCase
 from util import chronometer
+
+
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -120,10 +124,35 @@ class ModelRun():
 
     def log_result(self, conn: sqlite3.Connection):
         select_max_resid = "SELECT MAX(id_result) as max_id FROM NNRESULTS WHERE id_setup=?"
-        insert_statement = "INSERT INTO NNRESULTS VALUES (?, ?, ?, ?, ?, ?, ?)"
-        insert_evo_statement = "INSERT INTO NNRESULTEVO VALUES (?, ?, ?, ?, ?)"
-        insert_weights_statement = "INSERT INTO RESULT_WEIGHTS VALUES (?, ?, ?, ?)"
-        insert_classif_statement = "INSERT INTO RESULT_CLASSIFICATIONS VALUES (?, ?, ?, ?, ?, ?, ?)"
+        insert_statement = "INSERT INTO NNRESULTS (id_setup, id_result, perc_success, config_summary) VALUES (?, ?, ?, ?)"
+        insert_classif_statement = "INSERT INTO RESULT_CLASSIFICATIONS VALUES (?, ?, ?, ?, ?, ?)"
+        c = conn.cursor()
+
+        c.execute(select_max_resid, (self.id_setup,))
+        id_result = c.fetchone()[0]
+        if not id_result:
+            id_result = 0
+        else:
+            id_result += 1
+
+        c.execute(insert_statement, (self.id_setup, id_result, self.precision, str(self.model)))
+
+        for bean in self.user_beans:
+            bean: UserIRRBean
+            c.execute(insert_classif_statement, (self.id_setup, id_result, bean.user_id, bean.IRR_socal_maep, bean.IRR_svr_maep, bean.IRR_adaptative_maep))
+
+        c.close()
+        conn.commit()
+
+    def plot(self):
+        list_of_points = []
+        self.user_beans.sort(key=lambda x: x.IRR_svr_maep, reverse=True)
+        for ub in self.user_beans:
+            ub:UserIRRBean
+            list_of_points.append([ub.IRR_socal_maep, ub.IRR_svr_maep, ub.IRR_adaptative_maep])
+        df = pd.DataFrame(list_of_points, columns=["SOCAL", "SVR", "ADAPTIVE"])
+        fig = df.plot().get_figure()
+        fig.savefig('graf.pdf')
 
 
 def model_run_but_better(models, conn):
@@ -157,7 +186,6 @@ def model_run_but_better(models, conn):
         m.precision = correct_classifications / len(ds)
         m.classified_entries = testfolds
         print("Total model precision {}-folds: {:.6f}".format(m.kfolds, m.precision))
-        # TODO guardar en DB el resultado del run, el dataset, su madre, su padre, su tia, etc y los IRR de cada usuario para SOCAL, SVR y ADAPTATIVO
 
 
 def model_run(models, id_setup, trainperc, conn):
@@ -267,7 +295,6 @@ def generate_model_examples():
     models.append(tree.DecisionTreeClassifier())
     models.append(ExtraTreesClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
 
-
 if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
@@ -280,8 +307,6 @@ if __name__ == "__main__":
 
     model_run_but_better(models, conn)
 
-
-
     # For every model, we get the maep-value for socal, svr, and the adaptative method (ours) which will be one or the other depending
     # on the average predicted class for that given user's instances
     for m in models:
@@ -293,6 +318,7 @@ if __name__ == "__main__":
             ub = UserIRRBean(u.user_id, u.maep_socal, u.maep_svr, user_predictions)
             user_irr_beans.append(ub)
         m.user_beans = user_irr_beans
-
+        # m.log_result(conn)
+        m.plot()
     # generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
