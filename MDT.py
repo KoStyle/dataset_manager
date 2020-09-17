@@ -2,9 +2,9 @@ import math
 import random
 import sqlite3
 import subprocess
-import pandas as pd
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn import svm, tree
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression, Ridge
@@ -18,8 +18,6 @@ from io_management import create_database_schema, read_matrixes_from_setup, __ge
 from io_management import load_dataset, load_all_db_instances
 from user_case import UserCase
 from util import chronometer
-
-
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -124,18 +122,22 @@ class ModelRun():
 
     def log_result(self, conn: sqlite3.Connection):
         select_max_resid = "SELECT MAX(id_result) as max_id FROM NNRESULTS WHERE id_setup=?"
-        insert_statement = "INSERT INTO NNRESULTS (id_setup, id_result, perc_success, config_summary) VALUES (?, ?, ?, ?)"
+        insert_statement = "INSERT INTO NNRESULTS (id_setup, id_result, perc_success, dataset_ratio, config_summary, dataset) VALUES (?, ?, ?, ?, ?, ?)"
         insert_classif_statement = "INSERT INTO RESULT_CLASSIFICATIONS VALUES (?, ?, ?, ?, ?, ?)"
         c = conn.cursor()
 
         c.execute(select_max_resid, (self.id_setup,))
         id_result = c.fetchone()[0]
-        if not id_result:
+        if id_result is None:
             id_result = 0
         else:
             id_result += 1
 
-        c.execute(insert_statement, (self.id_setup, id_result, self.precision, str(self.model)))
+        n_users_socal = len(list(filter(lambda x: (x.IRR_svr_maep > x.IRR_socal_maep), self.user_beans)))
+        n_users_svr = len(self.user_beans) - n_users_socal
+
+        c.execute(insert_statement,
+                  (self.id_setup, id_result, self.precision, "Ratio: {} SOCAL users; {} SVR users".format(n_users_socal, n_users_svr), str(self.model), self.dataset))
 
         for bean in self.user_beans:
             bean: UserIRRBean
@@ -146,13 +148,30 @@ class ModelRun():
 
     def plot(self):
         list_of_points = []
+        list_of_indexes = []
         self.user_beans.sort(key=lambda x: x.IRR_svr_maep, reverse=True)
         for ub in self.user_beans:
-            ub:UserIRRBean
+            ub: UserIRRBean
             list_of_points.append([ub.IRR_socal_maep, ub.IRR_svr_maep, ub.IRR_adaptative_maep])
-        df = pd.DataFrame(list_of_points, columns=["SOCAL", "SVR", "ADAPTIVE"])
-        fig = df.plot().get_figure()
-        fig.savefig('graf.pdf')
+            list_of_indexes.append(ub.user_id)
+
+        df = pd.DataFrame(list_of_points, columns=["SOCAL", "SVR", "ADAPTIVE"], index=list_of_indexes)
+
+        styles1 = ['bs-', 'ro-', 'y^-']
+        fig, ax = plt.subplots()
+        axis = df.plot(style=styles1, ax=ax, xticks=range(len(list_of_indexes)), figsize=(16, 9))
+        plt.ylabel("MAE-pairs")
+        plt.xlabel("Usuarios")
+        plt.title("Comparativa de MAE-p por usuario con SOCAL puro, SVR puro y Sentimiento Adaptativo")
+        plt.xticks(rotation=90)
+        # plt.show()
+
+        axis.set_ylim(0, 0.7)
+
+
+
+        fig = axis.get_figure()
+        fig.savefig('plots\{}_setup{}.png'.format(self.dataset, self.id_setup))
 
 
 def model_run_but_better(models, conn):
@@ -258,8 +277,11 @@ class UserIRRBean:
 
 
 def generate_user_instances_for_percentiles(conn, dataset, redundancy):
-    generate_user_instances(conn, dataset, redundancy, instance_perc=0.5)
+
+    generate_user_instances(conn, dataset, redundancy, instance_perc=0.01)
+    generate_user_instances(conn, dataset, redundancy, instance_perc=0.1)
     generate_user_instances(conn, dataset, redundancy, instance_perc=0.25)
+    generate_user_instances(conn, dataset, redundancy, instance_perc=0.5)
     generate_user_instances(conn, dataset, redundancy, instance_perc=0.75)
     generate_user_instances(conn, dataset, redundancy, instance_perc=1.0)
 
@@ -295,6 +317,7 @@ def generate_model_examples():
     models.append(tree.DecisionTreeClassifier())
     models.append(ExtraTreesClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
 
+
 if __name__ == "__main__":
     # test_bert_sentence()
     # get_chrono(test_bert_sentence)
@@ -304,21 +327,28 @@ if __name__ == "__main__":
     models = []
 
     models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=4, kfolds=10, dataset=DATASET_IMDB))
+    models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=2, kfolds=10, dataset=DATASET_IMDB))
+    models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=1, kfolds=10, dataset=DATASET_IMDB))
 
-    model_run_but_better(models, conn)
+    # model_run_but_better(models, conn)
 
     # For every model, we get the maep-value for socal, svr, and the adaptative method (ours) which will be one or the other depending
     # on the average predicted class for that given user's instances
-    for m in models:
-        users = load_dataset(conn, m.dataset, True)
-        user_irr_beans = []
-        for key, u in users.items():
-            u: UserCase
-            user_predictions = [x for x in m.classified_entries if x.user_id == u.user_id]
-            ub = UserIRRBean(u.user_id, u.maep_socal, u.maep_svr, user_predictions)
-            user_irr_beans.append(ub)
-        m.user_beans = user_irr_beans
-        # m.log_result(conn)
-        m.plot()
-    # generate_intances_attributes(conn, DATASET_IMDB)
+    # for m in models:
+    #     users = load_dataset(conn, m.dataset, True)
+    #     user_irr_beans = []
+    #     for key, u in users.items():
+    #         u: UserCase
+    #         user_predictions = [x for x in m.classified_entries if x.user_id == u.user_id]
+    #         ub = UserIRRBean(u.user_id, u.maep_socal, u.maep_svr, user_predictions)
+    #         user_irr_beans.append(ub)
+    #     m.user_beans = user_irr_beans
+    #     m.log_result(conn)
+    #     m.plot()
+
+    redundancy = 10
+    dataset = DATASET_IMDB
+    # generate_user_instances(conn, dataset, redundancy, instance_perc=0.01)
+    # generate_user_instances(conn, dataset, redundancy, instance_perc=0.1)
+    generate_intances_attributes(conn, DATASET_IMDB)
     conn.close()
