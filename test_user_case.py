@@ -1,8 +1,8 @@
 import sqlite3
 from unittest import TestCase
 
-from io_management import load_dataset_files_IMBD, load_dataset_from_db
-from user_case import UserCase
+from dataset_io.io_management import load_dataset_files_IMBD, load_dataset_from_db
+from dataset_io.user_case import UserCase
 
 
 class TestUserCase(TestCase):

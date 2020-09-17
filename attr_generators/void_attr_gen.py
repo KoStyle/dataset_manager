@@ -1,6 +1,4 @@
-from sentence_transformers import SentenceTransformer
-
-from att_generators.attr_funcs import *
+from attr_generators.attr_funcs import *
 from constants import TYPE_LST
 
 

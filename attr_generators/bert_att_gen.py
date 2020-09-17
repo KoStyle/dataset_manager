@@ -1,6 +1,6 @@
 from sentence_transformers import SentenceTransformer
 
-from att_generators.void_attr_gen import VoidAttGen
+from attr_generators.void_attr_gen import VoidAttGen
 from constants import TYPE_LST
 
 

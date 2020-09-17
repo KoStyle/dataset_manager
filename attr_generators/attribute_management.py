@@ -1,11 +1,10 @@
 import sqlite3
-import multiprocessing as mp
 
-from att_generators.pandora_att_gen import PandoraAttGen
-from att_generators.void_attr_gen import VoidAttGen
-from att_generators.bert_att_gen import BertAttGen
+from attr_generators.pandora_att_gen import PandoraAttGen
+from attr_generators.void_attr_gen import VoidAttGen
+from attr_generators.bert_att_gen import BertAttGen
 from constants import DBT_MATTR
-from user_case import UserCase
+from dataset_io.user_case import UserCase
 
 published_attributes = []
 

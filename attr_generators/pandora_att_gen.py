@@ -14,7 +14,7 @@ from sklearn.feature_selection import SelectKBest, chi2, f_regression
 from sklearn.linear_model import LogisticRegression, Lasso, Ridge
 from sklearn.preprocessing import MinMaxScaler
 
-from att_generators.void_attr_gen import VoidAttGen
+from attr_generators.void_attr_gen import VoidAttGen
 from constants import TYPE_LST, TYPE_NUM, PANDORA_DICT, PANDORA_CORPUS, PANDORA_MODELS
 
 
@@ -215,7 +215,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def __init_mbti_models():
-        argstr = '-data_path C:\\Users\\konom\\Downloads\\pandora_baseline\\data -label allmbti -tasktype classification -folds mbti -feats 1gram -model lr -variant LR-N'
+        argstr = '-data_path ./data -label allmbti -tasktype classification -folds mbti -feats 1gram -model lr -variant LR-N'
         args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
@@ -229,7 +229,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def __init_age_model():
-        argstr = '-data_path C:\\Users\\konom\\Downloads\\pandora_baseline\\data -label age -tasktype regression -folds age -feats 1gram -model lr -variant LR-N'
+        argstr = '-data_path ./data -label age -tasktype regression -folds age -feats 1gram -model lr -variant LR-N'
         args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []
@@ -243,7 +243,7 @@ class PandoraAttGen(VoidAttGen):
 
     @staticmethod
     def __init_gender_model():
-        argstr = '-data_path C:\\Users\\konom\\Downloads\\pandora_baseline\\data -label is_female -tasktype classification -folds gender -feats 1gram -model lr -variant LR-N'
+        argstr = '-data_path ./data -label is_female -tasktype classification -folds gender -feats 1gram -model lr -variant LR-N'
         args = PandoraAttGen.parse_args(argstr.split())
         unm = pickle.load(open(os.path.join(args.data_path, "unames.pickle"), "rb"))
         txt = []

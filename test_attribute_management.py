@@ -1,6 +1,6 @@
 import sqlite3
 from unittest import TestCase
-from attribute_management import attribute_generator_publisher, get_active_attr_generators
+from attr_generators.attribute_management import attribute_generator_publisher, get_active_attr_generators
 
 
 class Test(TestCase):

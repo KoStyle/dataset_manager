@@ -1,10 +1,9 @@
 from datetime import datetime
-from random import sample
 import sqlite3
 from random import sample
 
-from att_generators.attr_funcs import AttrValue
-from base_case import BaseCase
+from attr_generators.attr_funcs import AttrValue
+from dataset_io.base_case import BaseCase
 from constants import CONCATS_TID, DBT_CONCATS, DBT_ATTGEN, ATTGEN_TID, ATTGEN_AID, CONCATS_UID, \
     CONCATS_NUMRE, CONCATS_REVST, DBT_MREVS, DBT_MUSR, CLASS_NOCLASS, CLASS_SOCAL, \
     CLASS_SVR, TYPE_LST, MREVS_UID, MREVS_SVR, MREVS_SOCAL, MREVS_REVIEW, MREVS_PID, MREVS_RID, DBT_MATTR, TYPE_NUM
