@@ -1,4 +1,5 @@
 import math
+import os
 import random
 import sqlite3
 import subprocess
@@ -10,13 +11,14 @@ from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.neural_network import MLPClassifier
 
+from attr_generators.attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
 from attr_generators.void_attr_gen import nltk
 from constants import SOCAL_REPRES, SVR_REPRES, DATASET_IMDB
-from attr_generators.attribute_management import get_active_attr_generators, attribute_generator_publisher, generate_attributes
-from dataset_io.dataset_entry import get_entries_of, map_predicted_values
+from dataset_io.dataset_entry import get_entries_of, map_predicted_values, DsEntry
 # from dataset_io.io_management import create_database_schema, read_matrixes_from_setup, get_expected_array, datalist_to_datamatrix, read_dataset_from_setup
 # from dataset_io.io_management import load_dataset, load_all_db_instances
 from dataset_io.io_management import IOManagement
+from dataset_io.user_case import UserCase
 
 RUTA_BASE = 'ficheros_entrada/'
 
@@ -36,6 +38,7 @@ def setup_nltk():
         nltk.data.find('taggers/universal_tagset')
     except LookupError:
         nltk.download('universal_tagset')
+
 
 class MDT:
 
@@ -78,7 +81,6 @@ class MDT:
         # result= Parallel(n_jobs=12)(delayed(generate_attributes)([row], list_active_generators) for row in user_instances)
         generate_attributes(user_instances, list_active_generators, conn=conn)  # logs instances on generation
 
-
     # @chrono
     # def test_bert_sentence():
     #     global model
@@ -112,42 +114,84 @@ class MDT:
         return the_matrix, the_expected
 
     @staticmethod
+    def len_fold_validation(m, ds):
+        m: ModelRun
+        trainset, testset = MDT.lenfold(ds, m.lenfolds, m.prunning)
+        correct_classifications = 0
+        total_classications = 0
+
+        train_mx, train_expected = MDT.convert_ds_to_mx(trainset)
+        test_mx, test_expected = MDT.convert_ds_to_mx(testset)
+
+        m.model.fit(train_mx, train_expected)
+
+        new_matches, the_classified = MDT.measure_model(m.model, test_mx, test_expected, "Length fold, nreviews: {}".format(m.lenfolds))
+        correct_classifications += new_matches
+        total_classications += len(testset)
+        testset = map_predicted_values(testset, the_classified)
+
+        m.precision = correct_classifications / total_classications
+        m.classified_entries = testset
+
+    @staticmethod
+    def k_fold_cross_validation(m, ds):
+        m: ModelRun
+        folds = MDT.stratify(ds, m.kfolds, m.prunning)
+
+        testfolds = []
+        correct_classifications = 0
+        total_classications = 0
+        for i in range(len(folds)):
+            testset = folds[i]
+            trainset = []
+            for t in range(len(folds)):
+                if t != i:
+                    trainset = trainset + folds[t]
+
+            train_mx, train_expected = MDT.convert_ds_to_mx(trainset)
+            test_mx, test_expected = MDT.convert_ds_to_mx(testset)
+
+            m.model.fit(train_mx, train_expected)
+
+            new_matches, the_classified = MDT.measure_model(m.model, test_mx, test_expected, "Fold {}".format(i))
+            correct_classifications += new_matches
+            total_classications += len(testset)
+            testset = map_predicted_values(testset, the_classified)
+            testfolds += testset  # this is used to evaluate the performance of the original IRR algorithm with our modification.
+
+        m.precision = correct_classifications / total_classications
+        m.classified_entries = testfolds
+
+    @staticmethod
     def model_run_but_better(models, conn):
         print("Let's play!")
+        previous_dataset_name = ""
+        previous_id_setup = -1
+        previous_dataset = None
+
         for m in models:
             m: ModelRun
-            print("Reading the dataset with setup {}. Give me a second there...".format(m.id_setup))
-            ds = IOManagement.read_dataset_from_setup(conn, m.id_setup, m.dataset)
-            folds = MDT.stratify(ds, m.kfolds)
-            print("Done! (yay!)")
-
-            testfolds = []
-            correct_classifications = 0
-            for i in range(len(folds)):
-                testset = folds[i]
-                trainset = []
-                for t in range(len(folds)):
-                    if t != i:
-                        trainset = trainset + folds[t]
-
-                train_mx, train_expected = MDT.convert_ds_to_mx(trainset)
-                test_mx, test_expected = MDT.convert_ds_to_mx(testset)
-
-                m.model.fit(train_mx, train_expected)
-
-                new_matches, the_classified = MDT.measure_model(m.model, test_mx, test_expected, "Fold {}".format(i))
-                correct_classifications += new_matches
-                testset = map_predicted_values(testset, the_classified)
-                testfolds += testset  # this is used to evaluate the performance of the original IRR algorithm with our modification.
-
-            m.precision = correct_classifications / len(ds)
-            m.classified_entries = testfolds
-            print("Total model precision {}-folds: {:.6f}".format(m.kfolds, m.precision))
+            print("Reading the dataset with setup {}. Give me a second there...".format(m.id_setup, ))
+            if previous_dataset_name == m.dataset and previous_id_setup == m.id_setup and previous_dataset:
+                ds = previous_dataset
+            else:
+                ds = IOManagement.read_dataset_from_setup(conn, None, None, m)
+                previous_dataset = ds
+                previous_dataset_name = m.dataset
+            print("Done! (yay!). Oh by the way, it is {}".format(m.method, ))
+            if m.kfolds > 0:
+                MDT.k_fold_cross_validation(m, ds)
+                vali = "{}-folds".format(m.kfolds)
+            elif m.lenfolds > 0:
+                MDT.len_fold_validation(m, ds)
+                vali = "{}-revs".format(m.lenfolds)
+            print("Total model precision {}: {:.6f} >> in {}-{}".format(vali, m.precision, m.id_setup, m.method))
 
     @staticmethod
     def model_run(models, id_setup, trainperc, conn):
         print("Let's get them entries!")
-        the_matrix_train, the_expected_train, the_matrix_test, the_expected_test, the_matrix, the_expected = IOManagement.read_matrixes_from_setup(conn, id_setup, trainperc, DATASET_IMDB)
+        the_matrix_train, the_expected_train, the_matrix_test, the_expected_test, the_matrix, the_expected = IOManagement.read_matrixes_from_setup(conn, id_setup, trainperc,
+                                                                                                                                                   DATASET_IMDB)
         for model in models:
             print("Let's fitness " + str(model))
             model.fit(the_matrix_train, the_expected_train)
@@ -159,10 +203,47 @@ class MDT:
             print()
 
     @staticmethod
-    def stratify(entries_list, k):
+    def lenfold(entries_list, nrevs, class_balance=False):
+        testset = []
+        users_dic = {}
+        for u in entries_list:
+            u: DsEntry
+            users_dic[u.user_id] = 0
+
+        # we extract a fold of instances of nrevs length for every user in user_ids
+        for e in entries_list:
+            e: DsEntry
+            if e.nrevs == nrevs:
+                if users_dic[e.user_id] < 10:
+                    testset.append(e)
+                    users_dic[e.user_id] += 1
+
+        entries_list = list(set(entries_list) - set(testset))  # we remove the test entries from the dataset, and continue like nothing in the world ever happend. Shhh
+
+        positive_cases = get_entries_of(entries_list, 1)
+        negative_cases = get_entries_of(entries_list, 0)
+
+        # In case we want a balanced dataset, we discard extra cases in the bigger class
+        if class_balance:
+            if len(positive_cases) > len(negative_cases):
+                positive_cases = positive_cases[:len(negative_cases)]
+            else:
+                negative_cases = negative_cases[:len(positive_cases)]
+
+        return positive_cases + negative_cases, testset
+
+    @staticmethod
+    def stratify(entries_list, k, class_balance=False):
         folds = []
         positive_cases = get_entries_of(entries_list, 1)
         negative_cases = get_entries_of(entries_list, 0)
+
+        # In case we want a balanced dataset, we discard extra cases in the bigger class
+        if class_balance:
+            if len(positive_cases) > len(negative_cases):
+                positive_cases = positive_cases[:len(negative_cases)]
+            else:
+                negative_cases = negative_cases[:len(positive_cases)]
 
         posi_per_fold = math.floor(len(positive_cases) / k)
         posi_extra = len(positive_cases) % k
@@ -216,20 +297,27 @@ class MDT:
         models.append(Ridge(max_iter=80000, solver='sag'))
         models.append(tree.DecisionTreeClassifier())
         models.append(ExtraTreesClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0))
+        return models
+
 
 class ModelRun():
-    def __init__(self, model, id_setup, kfolds, dataset):
+    def __init__(self, model=None, id_setup=-1, kfolds=-1, nrevs=-1, dataset="IMDB", dsprunning=False):
         self.model = model
         self.id_setup = id_setup
+        self.id_result = -1
+        self.descri_setup = ""
+        self.method = ""
         self.kfolds = kfolds
+        self.lenfolds = nrevs
         self.dataset = dataset
+        self.prunning = dsprunning
         self.precision = 0.
         self.classified_entries = []
         self.user_beans = []
 
     def log_result(self, conn: sqlite3.Connection):
         select_max_resid = "SELECT MAX(id_result) as max_id FROM NNRESULTS WHERE id_setup=?"
-        insert_statement = "INSERT INTO NNRESULTS (id_setup, id_result, perc_success, dataset_ratio, config_summary, dataset) VALUES (?, ?, ?, ?, ?, ?)"
+        insert_statement = "INSERT INTO NNRESULTS (id_setup, id_result, perc_success, dataset_ratio, config_summary, dataset, kfolds, lenfold, prunning) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         insert_classif_statement = "INSERT INTO RESULT_CLASSIFICATIONS VALUES (?, ?, ?, ?, ?, ?)"
         c = conn.cursor()
 
@@ -244,7 +332,8 @@ class ModelRun():
         n_users_svr = len(self.user_beans) - n_users_socal
 
         c.execute(insert_statement,
-                  (self.id_setup, id_result, self.precision, "Ratio: {} SOCAL users; {} SVR users".format(n_users_socal, n_users_svr), str(self.model), self.dataset))
+                  (self.id_setup, id_result, self.precision, "Ratio: {} SOCAL users; {} SVR users".format(n_users_socal, n_users_svr),
+                   str(self.model).split('(')[0], self.dataset, self.kfolds, self.lenfolds, self.prunning))
 
         for bean in self.user_beans:
             bean: UserIRRBean
@@ -262,26 +351,32 @@ class ModelRun():
             list_of_points.append([ub.IRR_socal_maep, ub.IRR_svr_maep, ub.IRR_adaptative_maep])
             list_of_indexes.append(ub.user_id)
 
-        df = pd.DataFrame(list_of_points, columns=["SOCAL", "SVR", "ADAPTIVE"], index=list_of_indexes)
+        df = pd.DataFrame(list_of_points, columns=["SOLO SOCAL", "SOLO SVR", "ADAPTATIVO"], index=list_of_indexes)
 
         styles1 = ['bs-', 'ro-', 'y^-']
         fig, ax = plt.subplots()
         axis = df.plot(style=styles1, ax=ax, xticks=range(len(list_of_indexes)), figsize=(16, 9))
         plt.ylabel("MAE-pairs")
         plt.xlabel("Usuarios")
-        plt.title("Comparativa de MAE-p por usuario con SOCAL puro, SVR puro y Sentimiento Adaptativo")
+        plt.title("Comparativa de MAE-pairs por usuario con SOCAL, SVR y Sentimiento Adaptativo para {} con {}".format(self.method, str(self.model).split('(')[0]))
         plt.xticks(rotation=90)
         # plt.show()
 
         axis.set_ylim(0, 0.7)
 
-
-
         fig = axis.get_figure()
-        fig.savefig('plots\{}_setup{}.png'.format(self.dataset, self.id_setup))
+        if m.kfolds > 0:
+            vali = "kfolds{}".format(m.kfolds)
+        elif m.lenfolds > 0:
+            vali = "lfonds{}".format(m.lenfolds)
+        else:
+            vali = "noidea"
 
+        if not os.path.exists('plots\{}'.format(self.descri_setup)):
+            os.makedirs('plots\{}'.format(self.descri_setup))
 
-
+        fig.savefig('plots\{}\{}_classi_{}_{}_{}_prune_{}.png'.format(self.descri_setup, self.dataset, str(self.model).split('(')[0], self.descri_setup, vali, self.prunning))
+        plt.close(fig)
 
 
 class UserIRRBean:
@@ -299,7 +394,26 @@ class UserIRRBean:
             self.IRR_adaptative_maep = self.IRR_svr_maep
 
 
+def gimme_models_please(classifier, kfolds=-1, lfolds=-1, dataset=DATASET_IMDB, prunning=False):
+    models = []
+    models.append(ModelRun(classifier, id_setup=1, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    models.append(ModelRun(classifier, id_setup=2, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    models.append(ModelRun(classifier, id_setup=3, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    models.append(ModelRun(classifier, id_setup=4, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    models.append(ModelRun(classifier, id_setup=5, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    models.append(ModelRun(classifier, id_setup=6, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    models.append(ModelRun(classifier, id_setup=7, kfolds=kfolds, nrevs=lfolds, dataset=dataset, dsprunning=prunning))
+    return models
 
+
+def gimme_a_lot_of_models_please(classifier, dataset=DATASET_IMDB, prunning=False):
+    models = []
+    models += gimme_models_please(classifier, kfolds=10, prunning=prunning)
+    models += gimme_models_please(classifier, lfolds=10, prunning=prunning)
+    models += gimme_models_please(classifier, lfolds=100, prunning=prunning)
+    models += gimme_models_please(classifier, lfolds=500, prunning=prunning)
+    models += gimme_models_please(classifier, lfolds=1000, prunning=prunning)
+    return models
 
 
 if __name__ == "__main__":
@@ -310,25 +424,41 @@ if __name__ == "__main__":
     conn = sqlite3.connect("example.db")
     models = []
 
-    models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=4, kfolds=10, dataset=DATASET_IMDB))
-    models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=2, kfolds=10, dataset=DATASET_IMDB))
-    models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=1, kfolds=10, dataset=DATASET_IMDB))
+    dsp = False
+    classifier = RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0)
+    kfolds = 10
+    lfolds = -1
+    dataset = DATASET_IMDB
+    models += gimme_a_lot_of_models_please(classifier, prunning=False)
+    models += gimme_a_lot_of_models_please(classifier, prunning=True)
 
+    # classifiers = MDT.generate_model_examples()
+    # classifiers.append(classifier)
+    #
+    # for c in classifiers:
+    #     models += gimme_models_please(c, kfolds=10, prunning=False)
+    #     models += gimme_models_please(c, kfolds=10, prunning=True)
+
+
+    # models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=7, nrevs=10, dataset=DATASET_IMDB, dsprunning=dsp))
+    # models.append(ModelRun(RandomForestClassifier(n_estimators=50, max_depth=None, min_samples_split=2, random_state=0), id_setup=7, nrevs=100, dataset=DATASET_IMDB, dsprunning=dsp))
+
+    models.sort(key=lambda x: x.id_setup)
     MDT.model_run_but_better(models, conn)
 
     # For every model, we get the maep-value for socal, svr, and the adaptative method (ours) which will be one or the other depending
     # on the average predicted class for that given user's instances
-    # for m in models:
-    #     users = load_dataset(conn, m.dataset, True)
-    #     user_irr_beans = []
-    #     for key, u in users.items():
-    #         u: UserCase
-    #         user_predictions = [x for x in m.classified_entries if x.user_id == u.user_id]
-    #         ub = UserIRRBean(u.user_id, u.maep_socal, u.maep_svr, user_predictions)
-    #         user_irr_beans.append(ub)
-    #     m.user_beans = user_irr_beans
-    #     m.log_result(conn)
-    #     m.plot()
+    for m in models:
+        users = IOManagement.load_dataset(conn, m.dataset, True)
+        user_irr_beans = []
+        for key, u in users.items():
+            u: UserCase
+            user_predictions = [x for x in m.classified_entries if x.user_id == u.user_id]
+            ub = UserIRRBean(u.user_id, u.maep_socal, u.maep_svr, user_predictions)
+            user_irr_beans.append(ub)
+        m.user_beans = user_irr_beans
+        m.log_result(conn)
+        m.plot()
 
     redundancy = 10
     dataset = DATASET_IMDB

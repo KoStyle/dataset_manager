@@ -3,13 +3,15 @@ class DsEntry:
     def __init__(self):
         self.user_id = ""
         self.text_id = -1
+        self.nrevs = -1
         self.input_values = []
         self.output_value = -1
         self.predicted_class = -1
 
-    def __init__(self, user_id, text_id, entry_input, output):
+    def __init__(self, user_id, text_id, entry_input, output, nrevs):
         self.user_id = user_id
         self.text_id = text_id
+        self.nrevs = nrevs
         self.input_values = entry_input
         self.output_value = output
         self.predicted_class = -1

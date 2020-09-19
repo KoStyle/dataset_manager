@@ -5,32 +5,45 @@ import sqlite3
 import numpy
 from scipy.sparse import csr_matrix
 
-from dataset_io.base_case import BaseCase
 from constants import CLASS_SOCAL, CLASS_SVR, SEPARATOR, TAG_RID, TAG_SVR, TAG_SOCAL, TAG_CLASS, \
     TAG_UID, TAG_PID, TAG_UR, TAG_REVIEW, RUTA_BASE, MUSR_UID, MUSR_CLASS, DBT_MUSR, MUSR_DS, MUSR_MAEP_SVR, \
     MUSR_MAEP_SOCAL, DATASET_IMDB, DATASET_APP
+from dataset_io.base_case import BaseCase
 from dataset_io.dataset_entry import DsEntry
 from dataset_io.user_case import UserCase
+
 
 class IOManagement:
 
     @staticmethod
-    def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, dataset):
-        select_setup_statement = "SELECT select_statement from NNSETUPS where id_setup=?"
+    def read_dataset_from_setup(conn: sqlite3.Connection, id_setup, dataset, modelrun=None):
+        if modelrun:
+            id_setup = modelrun.id_setup
+            dataset = modelrun.dataset
+        select_setup_statement = "SELECT select_statement, descrip, method from NNSETUPS where id_setup=?"
         c = conn.cursor()
 
         try:
             c.execute(select_setup_statement, (id_setup,))
-            select_cases = c.fetchone()[0]
+            res = c.fetchone()
+            select_cases = res[0]
+
+            # if we where invoked with a model, we save descriptions (for plotting)
+            if modelrun:
+                modelrun.descri_setup = res[1]
+                modelrun.method = res[2]
+
+            # If the statement contains parameters, it is the dataset, so we go ahead and add it
             if '?' in select_cases:
                 c.execute(select_cases, (dataset,))
             else:
                 c.execute(select_cases)
+
             results = c.fetchall()
             entry_list = []
             for result in results:
                 values = [float(element) for element in result[2].split('@')]
-                entry_list.append(DsEntry(result[0], int(result[1]), values, float(result[3])))  # new and exciting stuff!!!
+                entry_list.append(DsEntry(result[0], int(result[1]), values, float(result[3]), result[4]))  # new and exciting stuff!!!
 
             return entry_list
         except sqlite3.OperationalError as e:
@@ -78,7 +91,6 @@ class IOManagement:
             print(e)
             # TODO Something something error
 
-
     # TODO deprecate the sh*t out of this!
     @staticmethod
     def __split_dsentries(dsentries, train_perc):
@@ -124,7 +136,6 @@ class IOManagement:
             entry: DsEntry
             expected_list.append(entry.output_value)
         return numpy.array(expected_list)
-
 
     # converts a list of lists of floats (or a list of DsEntries) to a csr matrix
     @staticmethod
@@ -343,7 +354,6 @@ class IOManagement:
                 del set_socal[sockey]
         return set_socal
 
-
     # This method joins two sets that are linked through the field id. We search for the same ID in both sets and join said
     # entries to create a complete set
     @staticmethod
@@ -384,7 +394,6 @@ class IOManagement:
             base_cases.append(case)
 
         return users_dict
-
 
     # TODO change magic numbers for constants
     @staticmethod
